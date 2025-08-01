@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Wrench } from "lucide-react";
+import { SignUpButton, SignedOut, SignedIn, UserButton, SignInButton } from '@clerk/clerk-react';
 
 const Navbar = () => {
   return (
@@ -36,16 +37,26 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center space-x-3">
-            <Link to="/select-role?action=login">
-              <Button variant="outline" className="bg-white text-green-600 hover:bg-green-100">
-                Login
-              </Button>
-            </Link>
-            <Link to="/select-role?action=signup">
-              <Button className="bg-orange-500 text-white hover:bg-orange-600">
-                Sign Up
-              </Button>
-            </Link>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="outline" className="bg-white text-green-600 hover:bg-green-100">
+                  Login
+                </Button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <Button className="bg-orange-500 text-white hover:bg-orange-600">
+                  Sign Up
+                </Button>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <Link to="/client/dashboard">
+                <Button className="bg-green-600 text-white hover:bg-green-700">
+                  Dashboard
+                </Button>
+              </Link>
+              <UserButton />
+            </SignedIn>
           </div>
         </div>
       </div>

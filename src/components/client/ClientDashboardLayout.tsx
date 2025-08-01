@@ -1,8 +1,9 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, User, Home } from "lucide-react";
+import { Bell, User, Home, Wrench } from "lucide-react";
+import { useUser } from '@clerk/clerk-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ interface ClientDashboardLayoutProps {
   title: string;
   subtitle?: string;
   showHomeIcon?: boolean;
+  showHandymanButton?: boolean;
 }
 
 const notifications = [
@@ -33,27 +35,31 @@ const notifications = [
   },
 ];
 
-const ClientDashboardLayout = ({ children, title, subtitle, showHomeIcon = true }: ClientDashboardLayoutProps) => {
+const ClientDashboardLayout = ({ children, title, subtitle, showHomeIcon = true, showHandymanButton = false }: ClientDashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isLoaded } = useUser();
 
-  const userString = localStorage.getItem("fixfinder_user");
-  const user = userString ? JSON.parse(userString) : null;
+  useEffect(() => {
+    if (isLoaded && !user) {
+      navigate("/");
+    }
+  }, [isLoaded, user, navigate]);
 
-  if (!user) {
-    navigate("/login/client");
+  if (!isLoaded || !user) {
     return null;
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("fixfinder_user");
     toast({
       title: "Logged out successfully",
       description: "You have been logged out of your account"
     });
     navigate("/");
   };
+
+  const isHandyman = user?.unsafeMetadata?.isHandyman;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -81,6 +87,25 @@ const ClientDashboardLayout = ({ children, title, subtitle, showHomeIcon = true 
                 >
                   <Home className="h-6 w-6 text-white" />
                 </button>
+              )}
+              {!isHandyman && showHandymanButton && (
+                <Button
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 py-2 mr-2"
+                  onClick={() => navigate("/handyman/registration")}
+                >
+                  <Wrench className="mr-2 h-5 w-5" />
+                  Register as Handyman
+                </Button>
+              )}
+              {isHandyman && (
+                <Button
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 py-2 mr-2"
+                  onClick={() => navigate("/handyman/dashboard")}
+                >
+                  Handyman Dashboard
+                </Button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
