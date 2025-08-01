@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, MessageSquare } from "lucide-react";
+import { Search, MessageSquare, Wrench } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
 import { useState } from "react";
+import { useUser } from '@clerk/clerk-react';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
-  const userString = localStorage.getItem("fixfinder_user");
-  const user = userString ? JSON.parse(userString) : null;
+  const { user } = useUser();
   const [selectedBooking, setSelectedBooking] = useState<typeof bookings[number] | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
@@ -86,7 +86,7 @@ const ClientDashboard = () => {
     completed: bookings.filter(b => b.status === "completed")
   };
 
-  return <ClientDashboardLayout title={`Welcome back, ${user?.name?.split(' ')[0] || 'Client'}`} subtitle="What can we help you with today?" showHomeIcon={false}>
+  return <ClientDashboardLayout title={`Welcome back, ${user?.firstName || 'Client'}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
       <div className="mb-8 relative">
         <div className="relative w-full md:w-96">
           <input type="text" placeholder="Search Services" className="w-full bg-white rounded-full py-2 px-6 pr-10 shadow-sm border border-gray-200" />
@@ -107,9 +107,12 @@ const ClientDashboard = () => {
         </div>
       </div>
       
-      <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6 mb-8" onClick={() => navigate("/client/service-catalog")}>
-        Book a Service
-      </Button>
+      <div className="mb-8 space-y-4">
+        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6" onClick={() => navigate("/client/service-catalog")}>
+          Book a Service
+        </Button>
+        
+      </div>
       
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Your Bookings</h2>

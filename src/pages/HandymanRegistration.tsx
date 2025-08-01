@@ -3,6 +3,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from '@clerk/clerk-react';
 
 const REG_STEPS = [
   "Personal Information",
@@ -80,7 +81,9 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
     </div>
     <div className="space-y-4">
       <div>
-        <label className="block mb-1 text-gray-700 font-medium">Full Name</label>
+        <label className="block mb-1 text-gray-700 font-medium">
+          Full Name <span className="text-red-500">*</span>
+        </label>
         <input
           name="name"
           value={data.name}
@@ -89,6 +92,7 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           type="text"
           placeholder="Full Name"
           autoComplete="name"
+          required
         />
       </div>
       <div>
@@ -115,7 +119,9 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
         />
       </div>
       <div>
-        <label className="block mb-1 text-gray-700 font-medium">Contact Number</label>
+        <label className="block mb-1 text-gray-700 font-medium">
+          Contact Number <span className="text-red-500">*</span>
+        </label>
         <input
           name="contact"
           value={data.contact}
@@ -124,10 +130,13 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           type="text"
           placeholder="Contact Number"
           autoComplete="tel"
+          required
         />
       </div>
       <div>
-        <label className="block mb-1 text-gray-700 font-medium">Email Address</label>
+        <label className="block mb-1 text-gray-700 font-medium">
+          Email Address <span className="text-red-500">*</span>
+        </label>
         <input
           name="email"
           value={data.email}
@@ -136,6 +145,7 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           type="email"
           placeholder="Email Address"
           autoComplete="email"
+          required
         />
       </div>
     </div>
@@ -437,7 +447,10 @@ const HandymanRegistration = () => {
   const [otherArea, setOtherArea] = useState("");
   const [pay, setPay] = useState<string[]>([]);
   const [otherPay, setOtherPay] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const navigate = useNavigate();
+  const { user } = useUser();
 
   // Redirect if registration not started
   React.useEffect(() => {
@@ -498,21 +511,122 @@ const HandymanRegistration = () => {
 
   const handleOtherPayChange = (e: ChangeEvent<HTMLInputElement>) => setOtherPay(e.target.value);
 
-  const handleNext = () => setStep((s) => s + 1);
+  const handleNext = () => {
+    // Validate current step before proceeding
+    if (step === 0) {
+      if (!personal.name || !personal.contact || !personal.email) {
+        alert("Please fill in all required fields (Name, Contact, Email)");
+        return;
+      }
+    } else if (step === 1) {
+      if (!photo) {
+        alert("Please upload a profile photo");
+        return;
+      }
+    } else if (step === 2) {
+      if (services.length === 0) {
+        alert("Please select at least one service");
+        return;
+      }
+    }
+    setStep((s) => s + 1);
+  };
+  
   const handleBack = () => setStep((s) => s - 1);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // Submit form or save to backend.
-    // Here: set localStorage and go to dashboard.
-    localStorage.setItem("fixfinder_handyman_registered", "1");
-    navigate("/handyman/dashboard");
+    
+    // Validate required fields
+    if (!personal.name || !personal.contact || !personal.email) {
+      alert("Please fill in all required fields (Name, Contact, Email)");
+      return;
+    }
+    
+    if (!photo) {
+      alert("Please upload a profile photo");
+      return;
+    }
+    
+    if (services.length === 0) {
+      alert("Please select at least one service");
+      return;
+    }
+    
+    if (areas.length === 0) {
+      alert("Please select at least one service area");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Set Clerk metadata to mark user as handyman
+      if (user) {
+        await user.update({ 
+          unsafeMetadata: { 
+            ...user.unsafeMetadata, 
+            isHandyman: true,
+            handymanRegistration: {
+              personal,
+              services,
+              otherService,
+              certs,
+              tools,
+              days,
+              hours,
+              emergency,
+              areas,
+              otherArea,
+              pay,
+              otherPay,
+              photoUploaded: true
+            }
+          } 
+        });
+      }
+      
+      // Show success state
+      setShowSuccess(true);
+      
+      // Navigate back to client dashboard after a short delay
+      setTimeout(() => {
+        navigate("/client/dashboard");
+      }, 2000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("There was an error completing your registration. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (showSuccess) {
+    return (
+      <div className="min-h-screen w-full bg-[#f6f7fa] flex flex-col items-center py-8">
+        <div className="w-full max-w-xl bg-white rounded-lg shadow p-6 md:p-10 mt-6 text-center">
+          <div className="mb-6">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+            <p className="text-gray-600">Your handyman registration has been completed successfully. You can now access handyman features.</p>
+            <p className="text-sm text-gray-500 mt-2">Redirecting to dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-[#f6f7fa] flex flex-col items-center py-8">
       <div className="w-full max-w-xl bg-white rounded-lg shadow p-6 md:p-10 mt-6">
         <h2 className="text-2xl md:text-2xl font-bold text-center text-gray-900">Handyman Registration</h2>
+        <p className="text-sm text-gray-600 text-center mb-4">
+          Fields marked with <span className="text-red-500">*</span> are required
+        </p>
         <StepIndicator step={step} />
         <form onSubmit={handleSubmit}>
           {step === 0 && (
@@ -584,9 +698,10 @@ const HandymanRegistration = () => {
             ) : (
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-green-600 transition"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit
+                {isSubmitting ? "Submitting..." : "Submit"}
               </button>
             )}
           </div>
