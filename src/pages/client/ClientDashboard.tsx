@@ -1,34 +1,54 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, MessageSquare, Wrench } from "lucide-react";
+import { Search, MessageSquare, Wrench, Loader2 } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useUser } from '@clerk/clerk-react';
+import { useServices } from "@/hooks/use-api";
+import { Input } from "@/components/ui/input";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const [selectedBooking, setSelectedBooking] = useState<typeof bookings[number] | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const popularServices = [{
-    id: 1,
-    name: "Plumbing",
-    icon: "🔧"
-  }, {
-    id: 2,
-    name: "Electrical",
-    icon: "⚡"
-  }, {
-    id: 3,
-    name: "Painting",
-    icon: "🖌️"
-  }, {
-    id: 4,
-    name: "Home Repair",
-    icon: "🏠"
-  }];
+  // Fetch services from backend
+  const { data: servicesResponse, isLoading, error } = useServices();
+
+  // Extract services from API response and sort alphabetically
+  const services = useMemo(() => {
+    if (!servicesResponse?.data) {
+      return [];
+    }
+    const servicesArray = servicesResponse.data;
+    return servicesArray.sort((a: any, b: any) => 
+      a.name.localeCompare(b.name)
+    );
+  }, [servicesResponse]);
+
+  // Filter services based on search
+  const filteredServices = useMemo(() => {
+    const lowerSearch = search.trim().toLowerCase();
+    return services.filter((service: any) =>
+      service.name.toLowerCase().includes(lowerSearch)
+    );
+  }, [services, search]);
+
+  // Get popular services (top 4 by usage count)
+  const popularServices = useMemo(() => {
+    return services
+      .sort((a: any, b: any) => (b.usageCount || 0) - (a.usageCount || 0))
+      .slice(0, 4)
+      .map((service: any) => ({
+        id: service._id,
+        name: service.name,
+        icon: getServiceIcon(service.name),
+        usageCount: service.usageCount || 0
+      }));
+  }, [services]);
 
   const bookings = [{
     id: 1,
@@ -87,29 +107,114 @@ const ClientDashboard = () => {
   };
 
   return <ClientDashboardLayout title={`Welcome back, ${user?.firstName || 'Client'}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
-      <div className="mb-8 relative">
-        <div className="relative w-full md:w-96">
-          <input type="text" placeholder="Search Services" className="w-full bg-white rounded-full py-2 px-6 pr-10 shadow-sm border border-gray-200" />
-          <Search className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-        </div>
+      {/* Search Bar */}
+      <div className="relative mb-8">
+        <Input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search Services"
+          className="pl-10"
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
       </div>
+
+      {/* Search Results */}
+      {search.trim() && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Search Results</h2>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Loading services...</span>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-600 mb-4">Failed to load services</p>
+              <p className="text-sm text-gray-500">
+                {error.message || 'Please check your connection and try again'}
+              </p>
+            </div>
+          ) : filteredServices.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredServices.map((service: any) => (
+                <div
+                  key={service._id || service.serviceId}
+                  className="flex flex-col items-center gap-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 p-4 border border-gray-100"
+                  onClick={() => navigate("/client/service-details", { state: { service } })}
+                >
+                  {/* Service Image Container */}
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center shadow-inner">
+                    {service.imageUrl ? (
+                      <img
+                        src={service.imageUrl}
+                        alt={service.name}
+                        className="w-12 h-12 object-cover rounded-full shadow-sm"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    
+                    {/* Fallback Icon */}
+                    <span className={`text-3xl ${service.imageUrl ? 'hidden' : ''}`}>
+                      {getServiceIcon(service.name)}
+                    </span>
+                  </div>
+                  
+                  {/* Service Name */}
+                  <span className="font-bold text-gray-800 text-center text-sm leading-tight">
+                    {service.name}
+                  </span>
+
+                  {/* Usage Count */}
+                  {service.usageCount > 0 && (
+                    <span className="text-xs text-gray-500">
+                      {service.usageCount} times used
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No services found matching "{search}"</p>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Popular Services</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {popularServices.map(service => <div key={service.id} className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleServiceClick({
-          name: service.name,
-          icon: service.icon
-        })}>
+          {popularServices.map(service => (
+            <div 
+              key={service.id} 
+              className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" 
+              onClick={() => handleServiceClick({
+                name: service.name,
+                icon: service.icon
+              })}
+            >
               <div className="text-3xl mb-2">{service.icon}</div>
-              <div className="text-sm font-medium">{service.name}</div>
-            </div>)}
+              <div className="text-sm font-medium text-center">{service.name}</div>
+              {service.usageCount > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {service.usageCount} times used
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
       
       <div className="mb-8 space-y-4">
         <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6" onClick={() => navigate("/client/service-catalog")}>
-          Book a Service
+          See All Services
         </Button>
         
       </div>
@@ -213,3 +318,28 @@ const ClientDashboard = () => {
 };
 
 export default ClientDashboard;
+
+// Helper function to get service icons based on service name
+const getServiceIcon = (serviceName: string): string => {
+  const name = serviceName.toLowerCase();
+
+  // Enhanced icons with better visual appeal
+  if (name.includes('electrical') || name.includes('electric')) return '⚡';
+  if (name.includes('plumbing') || name.includes('pipe')) return '🔧';
+  if (name.includes('carpentry') || name.includes('wood')) return '🪚';
+  if (name.includes('painting') || name.includes('paint')) return '🎨';
+  if (name.includes('cleaning') || name.includes('clean')) return '✨';
+  if (name.includes('gardening') || name.includes('garden')) return '🌱';
+  if (name.includes('roofing') || name.includes('roof')) return '🏠';
+  if (name.includes('appliance') || name.includes('repair')) return '🔨';
+  if (name.includes('pest') || name.includes('control')) return '🛡️';
+  if (name.includes('window')) return '🪟';
+  if (name.includes('home') || name.includes('house')) return '🏡';
+  if (name.includes('renovation') || name.includes('remodel')) return '🏗️';
+  if (name.includes('landscaping')) return '🌿';
+  if (name.includes('security') || name.includes('lock')) return '🔒';
+  if (name.includes('heating') || name.includes('hvac')) return '🔥';
+  if (name.includes('cooling') || name.includes('ac')) return '❄️';
+
+  return '🔧'; // Default icon
+};
