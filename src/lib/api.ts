@@ -22,6 +22,17 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add user ID and type headers for backend authentication
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    if (userId) {
+      config.headers['X-User-ID'] = userId;
+    }
+    if (userType) {
+      config.headers['X-User-Type'] = userType;
+    }
+    
     return config;
   },
   (error) => {
@@ -215,6 +226,28 @@ export class NotificationsAPI {
 
   static async deleteNotification(notificationId: string) {
     const response = await api.delete(`/notifications/${notificationId}`);
+    return response.data;
+  }
+}
+
+export class HandymanAPI {
+  static async registerHandyman(handymanData: any) {
+    const response = await api.post('/handyman/register', handymanData);
+    return response.data;
+  }
+
+  static async getHandymanProfile() {
+    const response = await api.get('/handyman/profile');
+    return response.data;
+  }
+
+  static async updateHandymanProfile(profileData: any) {
+    const response = await api.put('/handyman/profile', profileData);
+    return response.data;
+  }
+
+  static async getAllHandymen() {
+    const response = await api.get('/handyman/all');
     return response.data;
   }
 }
