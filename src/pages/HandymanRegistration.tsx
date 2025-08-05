@@ -1,9 +1,10 @@
 
-import React, { useState, ChangeEvent, FormEvent } from "react";
+import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from '@clerk/clerk-react';
+import { HandymanAPI, ServicesAPI } from "@/lib/api";
 
 const REG_STEPS = [
   "Personal Information",
@@ -23,7 +24,12 @@ const defaultServices = [
   { label: "Other (please specify):", name: "other" },
 ];
 
-const serviceAreas = ["Colombo", "Gampaha", "Kalutara"];
+const certifications = [
+  { label: "NVQ Level Certificate", name: "nvq" },
+  { label: "Technical / Vocational Courses Certificates", name: "techvoc" },
+  { label: "Workshop Certificates", name: "workshop" },
+  { label: "No formal training, but practical experience", name: "practical" },
+];
 
 const paymentMethods = [
   { label: "Cash", name: "cash" },
@@ -31,13 +37,6 @@ const paymentMethods = [
   { label: "Frimi", name: "frimi" },
   { label: "ez Cash", name: "ezcash" },
   { label: "Other:", name: "other" },
-];
-
-const certifications = [
-  { label: "NVQ Level Certificate", name: "nvq" },
-  { label: "Technical / Vocational Courses Certificates", name: "techvoc" },
-  { label: "Workshop Certificates", name: "workshop" },
-  { label: "No formal training, but practical experience", name: "practical" },
 ];
 
 const StepIndicator = ({ step }: { step: number }) => (
@@ -96,7 +95,9 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
         />
       </div>
       <div>
-        <label className="block mb-1 text-gray-700 font-medium">NIC / Driving License Number</label>
+        <label className="block mb-1 text-gray-700 font-medium">
+          NIC / Driving License Number <span className="text-red-500">*</span>
+        </label>
         <input
           name="nic"
           value={data.nic}
@@ -104,18 +105,7 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
           type="text"
           placeholder="NIC / Driving License Number"
-        />
-      </div>
-      <div>
-        <label className="block mb-1 text-gray-700 font-medium">Address</label>
-        <input
-          name="address"
-          value={data.address}
-          onChange={onChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-          type="text"
-          placeholder="Address"
-          autoComplete="street-address"
+          required
         />
       </div>
       <div>
@@ -123,8 +113,8 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           Contact Number <span className="text-red-500">*</span>
         </label>
         <input
-          name="contact"
-          value={data.contact}
+          name="contactNumber"
+          value={data.contactNumber}
           onChange={onChange}
           className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
           type="text"
@@ -138,8 +128,8 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           Email Address <span className="text-red-500">*</span>
         </label>
         <input
-          name="email"
-          value={data.email}
+          name="emailAddress"
+          value={data.emailAddress}
           onChange={onChange}
           className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
           type="email"
@@ -249,31 +239,17 @@ const Step3 = ({
 
 const Step4 = ({
   data, onInputChange, certs, onCertChange,
-  tools, onToolsChange,
-  avail, onAvailChange,
   days, hours, onDaysChange, onHoursChange,
-  emergency, onEmergencyChange,
-  areas, onAreaChange, otherArea, onOtherAreaChange,
   pay, onPayChange, otherPay, onOtherPayChange,
 }: {
   data: any;
   onInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   certs: string[];
   onCertChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  tools: string;
-  onToolsChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  avail: boolean;
-  onAvailChange: (e: ChangeEvent<HTMLInputElement>) => void;
   days: string;
   hours: string;
   onDaysChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onHoursChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  emergency: boolean;
-  onEmergencyChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  areas: string[];
-  onAreaChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  otherArea: string;
-  onOtherAreaChange: (e: ChangeEvent<HTMLInputElement>) => void;
   pay: string[];
   onPayChange: (e: ChangeEvent<HTMLInputElement>) => void;
   otherPay: string;
@@ -313,17 +289,6 @@ const Step4 = ({
       ))}
     </div>
     <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
-      <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="8" x="4" y="10" rx="2"/><path d="M8 6V4m8 2V4"/></svg>
-      <span>Tools Available</span>
-    </div>
-    <input
-      name="tools"
-      value={tools}
-      onChange={onToolsChange}
-      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-      placeholder="Example: Full toolbox, electric drill, wrench set, multimeter, ladder"
-    />
-    <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
       <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M8 11V8h8v8"/></svg>
       <span>Availability</span>
     </div>
@@ -343,58 +308,45 @@ const Step4 = ({
       className="w-full mb-2 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
       placeholder="e.g., 9 AM to 5 PM"
     />
-    <div className="flex items-center mb-4">
-      <input
-        type="checkbox"
-        id="emergency"
-        checked={emergency}
-        onChange={onEmergencyChange}
-        className="h-5 w-5 border-gray-400 mr-2"
-      />
-      <label htmlFor="emergency" className="text-base">Emergency Service Availability</label>
-    </div>
     <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
       <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span>Service Areas</span>
+      <span>Address / Location</span>
     </div>
-    <div className="space-y-2">
-      {serviceAreas.map(area => (
-        <div key={area} className="flex items-center">
-          <input
-            type="checkbox"
-            id={`area-${area}`}
-            checked={areas.includes(area)}
-            onChange={onAreaChange}
-            value={area}
-            className="h-5 w-5 border-gray-400 mr-2"
-          />
-          <label htmlFor={`area-${area}`} className="text-base">{area}</label>
-        </div>
-      ))}
-      <div className="flex items-center">
+    <div className="space-y-3">
+      <input
+        name="street"
+        value={data.street}
+        onChange={onInputChange}
+        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+        placeholder="Street Address"
+      />
+      <div className="grid grid-cols-2 gap-3">
         <input
-          type="checkbox"
-          id="area-other"
-          checked={areas.includes("Other")}
-          onChange={onAreaChange}
-          value="Other"
-          className="h-5 w-5 border-gray-400 mr-2"
+          name="city"
+          value={data.city}
+          onChange={onInputChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="City"
         />
-        <label htmlFor="area-other" className="text-base">Other:</label>
-        {areas.includes("Other") && (
-          <input
-            type="text"
-            value={otherArea}
-            onChange={onOtherAreaChange}
-            className="ml-3 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="Please specify"
-          />
-        )}
+        <input
+          name="state"
+          value={data.state}
+          onChange={onInputChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="State/Province"
+        />
       </div>
+      <input
+        name="zipCode"
+        value={data.zipCode}
+        onChange={onInputChange}
+        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+        placeholder="ZIP/Postal Code"
+      />
     </div>
     <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
       <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 6v-2h8v2"/></svg>
-      <span>Preferred Payment Methods</span>
+      <span>Preferred Payment Method</span>
     </div>
     <div className="space-y-2 mb-4">
       {paymentMethods.map(method => (
@@ -426,10 +378,13 @@ const Step4 = ({
 const initialForm = {
   name: "",
   nic: "",
-  address: "",
-  contact: "",
-  email: "",
+  contactNumber: "",
+  emailAddress: "",
   experience: "",
+  street: "",
+  city: "",
+  state: "",
+  zipCode: "",
 };
 
 const HandymanRegistration = () => {
@@ -439,24 +394,29 @@ const HandymanRegistration = () => {
   const [services, setServices] = useState<string[]>([]);
   const [otherService, setOtherService] = useState("");
   const [certs, setCerts] = useState<string[]>([]);
-  const [tools, setTools] = useState("");
   const [days, setDays] = useState("");
   const [hours, setHours] = useState("");
-  const [emergency, setEmergency] = useState(false);
-  const [areas, setAreas] = useState<string[]>([]);
-  const [otherArea, setOtherArea] = useState("");
   const [pay, setPay] = useState<string[]>([]);
   const [otherPay, setOtherPay] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [availableServices, setAvailableServices] = useState<any[]>([]);
   const navigate = useNavigate();
   const { user } = useUser();
 
-  // Redirect if registration not started
-  React.useEffect(() => {
-    // Optionally check localStorage for "handyman-registered" flag
-    // If so, redirect to dashboard
-    // Not implemented here; registration is always required for this demo
+  // Fetch available services from backend
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await ServicesAPI.getAllServices();
+        if (response.success) {
+          setAvailableServices(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    };
+    fetchServices();
   }, []);
 
   const handlePersonalChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -483,25 +443,8 @@ const HandymanRegistration = () => {
     else setCerts(certs.filter((c) => c !== name));
   };
 
-  const handleToolsChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setTools(e.target.value);
-  };
-
   const handleDaysChange = (e: ChangeEvent<HTMLInputElement>) => setDays(e.target.value);
   const handleHoursChange = (e: ChangeEvent<HTMLInputElement>) => setHours(e.target.value);
-
-  const handleEmergencyChange = (e: ChangeEvent<HTMLInputElement>) => setEmergency(e.target.checked);
-
-  const handleAreaChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const area = e.target.value;
-    setAreas(prev =>
-      prev.includes(area)
-        ? prev.filter((a) => a !== area)
-        : [...prev, area]
-    );
-  };
-
-  const handleOtherAreaChange = (e: ChangeEvent<HTMLInputElement>) => setOtherArea(e.target.value);
 
   const handlePayChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
@@ -514,8 +457,8 @@ const HandymanRegistration = () => {
   const handleNext = () => {
     // Validate current step before proceeding
     if (step === 0) {
-      if (!personal.name || !personal.contact || !personal.email) {
-        alert("Please fill in all required fields (Name, Contact, Email)");
+      if (!personal.name || !personal.nic || !personal.contactNumber || !personal.emailAddress) {
+        alert("Please fill in all required fields (Name, NIC, Contact, Email)");
         return;
       }
     } else if (step === 1) {
@@ -538,8 +481,8 @@ const HandymanRegistration = () => {
     e.preventDefault();
     
     // Validate required fields
-    if (!personal.name || !personal.contact || !personal.email) {
-      alert("Please fill in all required fields (Name, Contact, Email)");
+    if (!personal.name || !personal.nic || !personal.contactNumber || !personal.emailAddress) {
+      alert("Please fill in all required fields (Name, NIC, Contact, Email)");
       return;
     }
     
@@ -553,47 +496,81 @@ const HandymanRegistration = () => {
       return;
     }
     
-    if (areas.length === 0) {
-      alert("Please select at least one service area");
+    if (!personal.street || !personal.city || !personal.state || !personal.zipCode) {
+      alert("Please fill in complete address information");
+      return;
+    }
+    
+    if (!days || !hours) {
+      alert("Please specify working days and hours");
+      return;
+    }
+    
+    if (pay.length === 0) {
+      alert("Please select at least one payment method");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Set Clerk metadata to mark user as handyman
-      if (user) {
-        await user.update({ 
-          unsafeMetadata: { 
-            ...user.unsafeMetadata, 
-            isHandyman: true,
-            handymanRegistration: {
-              personal,
-              services,
-              otherService,
-              certs,
-              tools,
-              days,
-              hours,
-              emergency,
-              areas,
-              otherArea,
-              pay,
-              otherPay,
-              photoUploaded: true
+      // Convert photo to base64 for storage
+      const photoBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(photo!);
+      });
+
+      // Prepare handyman data
+      const handymanData = {
+        name: personal.name,
+        nic: personal.nic,
+        contactNumber: personal.contactNumber,
+        emailAddress: personal.emailAddress,
+        personalPhoto: photoBase64,
+        skills: services,
+        experience: parseInt(personal.experience),
+        certifications: certs,
+        services: services, // This will be mapped to service IDs
+        address: {
+          street: personal.street,
+          city: personal.city,
+          state: personal.state,
+          zipCode: personal.zipCode,
+        },
+        availability: {
+          workingDays: days,
+          workingHours: hours,
+        },
+        paymentMethod: pay.join(', '),
+      };
+
+      // Register handyman with backend
+      const response = await HandymanAPI.registerHandyman(handymanData);
+      
+      if (response.success) {
+        // Set Clerk metadata to mark user as handyman
+        if (user) {
+          await user.update({ 
+            unsafeMetadata: { 
+              ...user.unsafeMetadata, 
+              isHandyman: true,
+              handymanId: response.data.handymanId,
             }
-          } 
-        });
+          });
+        }
+        
+        // Show success state
+        setShowSuccess(true);
+        
+        // Navigate to handyman dashboard after a short delay
+        setTimeout(() => {
+          navigate("/handyman/dashboard");
+        }, 2000);
+      } else {
+        alert(response.message || "Registration failed. Please try again.");
       }
-      
-      // Show success state
-      setShowSuccess(true);
-      
-      // Navigate back to client dashboard after a short delay
-      setTimeout(() => {
-        navigate("/client/dashboard");
-      }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
       alert("There was an error completing your registration. Please try again.");
     } finally {
@@ -652,20 +629,10 @@ const HandymanRegistration = () => {
               onInputChange={handlePersonalChange}
               certs={certs}
               onCertChange={handleCertChange}
-              tools={tools}
-              onToolsChange={handleToolsChange}
-              avail={true}
-              onAvailChange={() => {}}
               days={days}
               hours={hours}
               onDaysChange={handleDaysChange}
               onHoursChange={handleHoursChange}
-              emergency={emergency}
-              onEmergencyChange={handleEmergencyChange}
-              areas={areas}
-              onAreaChange={handleAreaChange}
-              otherArea={otherArea}
-              onOtherAreaChange={handleOtherAreaChange}
               pay={pay}
               onPayChange={handlePayChange}
               otherPay={otherPay}
