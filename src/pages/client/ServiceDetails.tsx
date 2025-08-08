@@ -9,31 +9,34 @@ const ServiceDetails = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const service = location.state?.service;
+  
+  console.log("ServiceDetails - Service object:", service); // Debug log
 
+  // Use actual service data from MongoDB
   const serviceDetails = {
     duration: "1-3 hours",
-    startingPrice: "$85",
-    description: "Our professional plumbing services cover everything from minor repairs to major installations. Our certified plumbers are equipped to handle any plumbing issue quickly and efficiently, ensuring minimum disruption to your daily life.",
+    startingPrice: `$${service?.baseFee || 85}`,
+    description: service?.description || "Professional service with experienced handymen. Our certified professionals are equipped to handle your needs quickly and efficiently, ensuring minimum disruption to your daily life.",
     features: [
       {
-        title: "Leak Detection & Repair",
-        description: "Professional detection and fixing of all types of water leaks"
+        title: "Professional Service",
+        description: "Experienced and certified professionals"
       },
       {
-        title: "Toilet & Tap Repair",
-        description: "Expert repairs for all bathroom and kitchen fixtures"
+        title: "Quality Work",
+        description: "Guaranteed quality workmanship"
       },
       {
-        title: "Bathroom Fixture Installations",
-        description: "Complete installation services for all bathroom fixtures"
+        title: "Timely Service",
+        description: "Quick response and efficient completion"
       },
       {
-        title: "Drain Cleaning & Pipe Fitting",
-        description: "Thorough drain cleaning and professional pipe installation"
+        title: "Customer Satisfaction",
+        description: "Dedicated to customer satisfaction"
       },
       {
-        title: "Water Heater Setup & Repair",
-        description: "Installation, maintenance, and repair of water heating systems"
+        title: "Reliable Service",
+        description: "Trusted and reliable service providers"
       }
     ]
   };

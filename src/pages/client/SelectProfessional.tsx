@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import BookingDetailsDialog from "@/components/client/BookingDetailsDialog";
+import { HandymanAPI } from "@/lib/api";
 
 interface Professional {
-  id: string;
+  _id: string;
+  userId: string;
   name: string;
   status: "Available Now" | "Busy";
   title: string;
@@ -15,71 +17,93 @@ interface Professional {
   reviews: number;
   jobsCompleted: number;
   yearsExp: number;
-  distance: number;
-  successRate: number;
-  isRecommended: boolean;
+  distance: string;
+  services: string[]; // Changed from skills to services
+  bio: string;
+  location: {
+    city: string;
+    area: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  availability: {
+    [key: string]: string[];
+  };
 }
-
-const professionals: Professional[] = [
-  {
-    id: "1",
-    name: "Sapumal Chandrasiri",
-    status: "Available Now",
-    title: "Master Plumber, Emergency Services",
-    rating: 4.8,
-    reviews: 156,
-    jobsCompleted: 234,
-    yearsExp: 12,
-    distance: 2.4,
-    successRate: 95,
-    isRecommended: true,
-  },
-  {
-    id: "2",
-    name: "Udayanga Perera",
-    status: "Available Now",
-    title: "Commercial Plumbing Expert",
-    rating: 4.9,
-    reviews: 132,
-    jobsCompleted: 189,
-    yearsExp: 8,
-    distance: 3.1,
-    successRate: 95,
-    isRecommended: true,
-  },
-  {
-    id: "3",
-    name: "Nimal Basnayake",
-    status: "Busy",
-    title: "Residential Plumbing Specialist",
-    rating: 4.7,
-    reviews: 198,
-    jobsCompleted: 312,
-    yearsExp: 15,
-    distance: 4.2,
-    successRate: 95,
-    isRecommended: true,
-  },
-  {
-    id: "4",
-    name: "Piyal Alahakon",
-    status: "Available Now",
-    title: "Water Heater & Pipeline Expert",
-    rating: 4.8,
-    reviews: 89,
-    jobsCompleted: 145,
-    yearsExp: 6,
-    distance: 1.8,
-    successRate: 95,
-    isRecommended: true,
-  },
-];
 
 const SelectProfessional = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const service = location.state?.service;
   const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfessionals = async () => {
+      console.log("Service object:", service); // Debug log
+      console.log("Service ID:", service?._id); // Debug log
+      console.log("Service name:", service?.name); // Debug log
+      
+      if (!service?._id) {
+        console.log("No service ID found"); // Debug log
+        setError("No service selected");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log("Fetching professionals for service ID:", service._id); // Debug log
+        const response = await HandymanAPI.getServiceProvidersByServiceId(service._id);
+        console.log("API Response:", response); // Debug log
+        
+        if (response.success) {
+          console.log("Setting professionals:", response.data); // Debug log
+          console.log("First professional services:", response.data[0]?.services); // Debug log
+          console.log("First professional title:", response.data[0]?.title); // Debug log
+          setProfessionals(response.data);
+        } else {
+          console.log("API returned error:", response.message); // Debug log
+          setError(response.message || "Failed to fetch professionals");
+        }
+      } catch (err) {
+        console.error("Error fetching professionals:", err);
+        setError("Failed to load professionals");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfessionals();
+  }, [service?._id]);
+
+  if (loading) {
+    return (
+      <ClientDashboardLayout title={`${service?.name || 'Service'} - Select a Professional`} subtitle="">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Loading professionals...</div>
+          </div>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <ClientDashboardLayout title={`${service?.name || 'Service'} - Select a Professional`} subtitle="">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg text-red-600">{error}</div>
+          </div>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
 
   return (
     <ClientDashboardLayout title={`${service?.name || 'Service'} - Select a Professional`} subtitle="">
@@ -121,7 +145,7 @@ const SelectProfessional = () => {
 
         <div className="space-y-4">
           {professionals.map((professional) => (
-            <div key={professional.id} className="bg-white p-6 rounded-lg shadow-sm border flex items-center justify-between">
+            <div key={professional._id} className="bg-white p-6 rounded-lg shadow-sm border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-200 rounded-full" />
                 <div>
@@ -133,7 +157,12 @@ const SelectProfessional = () => {
                       {professional.status}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600">{professional.title}</p>
+                  <p className="text-sm text-gray-600">
+                    {professional.services && professional.services.length > 0 
+                      ? professional.services.join(', ')
+                      : professional.title
+                    }
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex items-center">
                       {"★".repeat(Math.floor(professional.rating))}
@@ -156,23 +185,6 @@ const SelectProfessional = () => {
                 <div className="text-center">
                   <div className="text-lg font-semibold">{professional.distance} km</div>
                   <div className="text-sm text-gray-600">Away</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold">{professional.successRate}%</div>
-                  <div className="text-sm text-gray-600">Success Rate</div>
-                </div>
-                <div>
-                  <Button 
-                    className="bg-orange-500 hover:bg-orange-600"
-                    onClick={() => setShowBookingDialog(true)}
-                  >
-                    Hire Now
-                  </Button>
-                  {professional.isRecommended && (
-                    <div className="text-xs text-green-600 text-center mt-1">
-                      Highly Recommended
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

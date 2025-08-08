@@ -43,6 +43,7 @@ const ClientDashboard = () => {
       .sort((a: any, b: any) => (b.usageCount || 0) - (a.usageCount || 0))
       .slice(0, 4)
       .map((service: any) => ({
+        _id: service._id,
         id: service._id,
         name: service.name,
         icon: getServiceIcon(service.name),
@@ -86,8 +87,10 @@ const ClientDashboard = () => {
   }];
 
   const handleServiceClick = (service: {
+    _id: string;
     name: string;
     icon: string;
+    usageCount?: number;
   }) => {
     navigate('/client/service-details', {
       state: {
@@ -192,14 +195,11 @@ const ClientDashboard = () => {
         <h2 className="text-xl font-semibold mb-4">Popular Services</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {popularServices.map(service => (
-            <div 
-              key={service.id} 
-              className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" 
-              onClick={() => handleServiceClick({
-                name: service.name,
-                icon: service.icon
-              })}
-            >
+                         <div 
+               key={service.id} 
+               className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" 
+               onClick={() => handleServiceClick(service)}
+             >
               <div className="text-3xl mb-2">{service.icon}</div>
               <div className="text-sm font-medium text-center">{service.name}</div>
               {service.usageCount > 0 && (
