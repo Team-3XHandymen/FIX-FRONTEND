@@ -250,6 +250,14 @@ export class HandymanAPI {
     const response = await api.get('/handyman/all');
     return response.data;
   }
+
+  static async getServiceProvidersByServiceId(serviceId: string) {
+    console.log("Calling API for service ID:", serviceId); // Debug log
+    console.log("Full API URL:", `${API_BASE_URL}/handyman/service/${serviceId}`); // Debug log
+    const response = await api.get(`/handyman/service/${serviceId}`);
+    console.log("Raw API response:", response); // Debug log
+    return response.data;
+  }
 }
 
 // Export the main api instance for custom requests
