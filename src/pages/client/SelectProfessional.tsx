@@ -33,23 +33,104 @@ interface Professional {
   };
 }
 
+type SortOption = 'distance' | 'rating' | 'experience' | null;
+
 const SelectProfessional = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const service = location.state?.service;
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [originalProfessionals, setOriginalProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentSort, setCurrentSort] = useState<SortOption>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Sorting functions
+  const sortByDistance = (a: Professional, b: Professional) => {
+    const distanceA = parseFloat(a.distance);
+    const distanceB = parseFloat(b.distance);
+    return distanceA - distanceB; // Least to highest
+  };
+
+  const sortByRating = (a: Professional, b: Professional) => {
+    return b.rating - a.rating; // Highest to lowest
+  };
+
+  const sortByExperience = (a: Professional, b: Professional) => {
+    return b.yearsExp - a.yearsExp; // Highest to lowest
+  };
+
+  const handleSort = (sortOption: SortOption) => {
+    setCurrentSort(sortOption);
+    
+    if (!sortOption) {
+      setProfessionals([...originalProfessionals]);
+      return;
+    }
+
+    const sortedProfessionals = [...originalProfessionals];
+    
+    switch (sortOption) {
+      case 'distance':
+        sortedProfessionals.sort(sortByDistance);
+        break;
+      case 'rating':
+        sortedProfessionals.sort(sortByRating);
+        break;
+      case 'experience':
+        sortedProfessionals.sort(sortByExperience);
+        break;
+    }
+    
+    setProfessionals(sortedProfessionals);
+  };
+
+  // Search functionality
+  const handleSearch = (searchValue: string) => {
+    setSearchTerm(searchValue);
+    
+    if (!searchValue.trim()) {
+      // If no search term, apply current sort to original data
+      if (currentSort) {
+        handleSort(currentSort);
+      } else {
+        setProfessionals([...originalProfessionals]);
+      }
+      return;
+    }
+
+    // Filter professionals based on search term
+    const filtered = originalProfessionals.filter(professional =>
+      professional.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      professional.title.toLowerCase().includes(searchValue.toLowerCase()) ||
+      professional.services.some(service => 
+        service.toLowerCase().includes(searchValue.toLowerCase())
+      )
+    );
+
+    // Apply current sort to filtered results
+    if (currentSort) {
+      switch (currentSort) {
+        case 'distance':
+          filtered.sort(sortByDistance);
+          break;
+        case 'rating':
+          filtered.sort(sortByRating);
+          break;
+        case 'experience':
+          filtered.sort(sortByExperience);
+          break;
+      }
+    }
+
+    setProfessionals(filtered);
+  };
 
   useEffect(() => {
     const fetchProfessionals = async () => {
-      console.log("Service object:", service); // Debug log
-      console.log("Service ID:", service?._id); // Debug log
-      console.log("Service name:", service?.name); // Debug log
-      
       if (!service?._id) {
-        console.log("No service ID found"); // Debug log
         setError("No service selected");
         setLoading(false);
         return;
@@ -57,17 +138,12 @@ const SelectProfessional = () => {
 
       try {
         setLoading(true);
-        console.log("Fetching professionals for service ID:", service._id); // Debug log
         const response = await HandymanAPI.getServiceProvidersByServiceId(service._id);
-        console.log("API Response:", response); // Debug log
         
         if (response.success) {
-          console.log("Setting professionals:", response.data); // Debug log
-          console.log("First professional services:", response.data[0]?.services); // Debug log
-          console.log("First professional title:", response.data[0]?.title); // Debug log
           setProfessionals(response.data);
+          setOriginalProfessionals(response.data);
         } else {
-          console.log("API returned error:", response.message); // Debug log
           setError(response.message || "Failed to fetch professionals");
         }
       } catch (err) {
@@ -120,13 +196,28 @@ const SelectProfessional = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex gap-4 items-center">
               <div className="font-medium">Sort by:</div>
-              <Button variant="outline" size="sm" className="bg-green-500 text-white">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className={currentSort === 'distance' ? "bg-green-500 text-white" : ""}
+                onClick={() => handleSort(currentSort === 'distance' ? null : 'distance')}
+              >
                 Distance
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={currentSort === 'rating' ? "bg-green-500 text-white" : ""}
+                onClick={() => handleSort(currentSort === 'rating' ? null : 'rating')}
+              >
                 Rating
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={currentSort === 'experience' ? "bg-green-500 text-white" : ""}
+                onClick={() => handleSort(currentSort === 'experience' ? null : 'experience')}
+              >
                 Experience
               </Button>
             </div>
@@ -135,11 +226,20 @@ const SelectProfessional = () => {
                 type="search"
                 placeholder="Search professionals..."
                 className="w-64"
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
           </div>
           <div className="flex justify-between items-center text-sm text-gray-600">
             <div>Showing: {professionals.length} available professionals</div>
+            {currentSort && (
+              <div className="text-green-600">
+                Sorted by: {currentSort === 'distance' ? 'Distance (nearest first)' : 
+                           currentSort === 'rating' ? 'Rating (highest first)' : 
+                           'Experience (most experienced first)'}
+              </div>
+            )}
           </div>
         </div>
 

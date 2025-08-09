@@ -16,26 +16,12 @@ const ServiceCatalog = () => {
 
   // Extract services from API response and sort alphabetically
   const services = useMemo(() => {
-    console.log('Services Response:', servicesResponse); // Debug log
     if (!servicesResponse?.data) {
-      console.log('No services data found'); // Debug log
       return [];
     }
     // The API returns { success: true, data: [...], message: "..." }
     // So we need to access servicesResponse.data directly
     const servicesArray = servicesResponse.data;
-    console.log('Services Array:', servicesArray); // Debug log
-    console.log('Number of services found:', servicesArray.length); // Debug log
-    
-    // Log each service for debugging
-    servicesArray.forEach((service: any, index: number) => {
-      console.log(`Service ${index + 1}:`, {
-        id: service._id,
-        name: service.name,
-        imageUrl: service.imageUrl,
-        description: service.description?.substring(0, 50) + '...'
-      });
-    });
     
     return servicesArray.sort((a: any, b: any) => 
       a.name.localeCompare(b.name)
