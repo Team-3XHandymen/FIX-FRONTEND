@@ -454,7 +454,9 @@ const HandymanRegistration = () => {
 
   const handleOtherPayChange = (e: ChangeEvent<HTMLInputElement>) => setOtherPay(e.target.value);
 
-  const handleNext = () => {
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault(); // Prevent any form submission
+    console.log('handleNext called for step:', step); // Debug log
     // Validate current step before proceeding
     if (step === 0) {
       if (!personal.name || !personal.nic || !personal.contactNumber || !personal.emailAddress) {
@@ -472,13 +474,24 @@ const HandymanRegistration = () => {
         return;
       }
     }
+    console.log('Moving to next step:', step + 1); // Debug log
     setStep((s) => s + 1);
   };
   
-  const handleBack = () => setStep((s) => s - 1);
+  const handleBack = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault(); // Prevent any form submission
+    setStep((s) => s - 1);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
+    console.log('handleSubmit called - this should only happen on final submission'); // Debug log
     e.preventDefault();
+    
+    // Only allow submission on the final step
+    if (step !== 3) {
+      console.log('Form submission blocked - not on final step. Current step:', step);
+      return;
+    }
     
     // Validate required fields
     if (!personal.name || !personal.nic || !personal.contactNumber || !personal.emailAddress) {
@@ -496,15 +509,31 @@ const HandymanRegistration = () => {
       return;
     }
     
-    if (!personal.street || !personal.city || !personal.state || !personal.zipCode) {
-      alert("Please fill in complete address information");
+    // Validate address fields (only city and state are required)
+    if (!personal.city || !personal.state) {
+      alert("Please provide at least city and state for your address");
       return;
     }
     
-    if (!days || !hours) {
-      alert("Please specify working days and hours");
+    // Validate experience field
+    if (!personal.experience || personal.experience.trim() === '') {
+      alert("Please provide your years of experience");
       return;
     }
+    
+    // Set default working days and hours if not provided (matching backend behavior)
+    let workingDays = days;
+    let workingHours = hours;
+    if (!workingDays || workingDays.trim() === '') {
+      workingDays = 'Monday, Tuesday, Wednesday, Thursday, Friday';
+    }
+    if (!workingHours || workingHours.trim() === '') {
+      workingHours = '9:00 AM - 5:00 PM';
+    }
+    
+    // Convert strings to arrays as expected by backend
+    const workingDaysArray = workingDays.split(',').map(day => day.trim());
+    const workingHoursArray = workingHours.split(',').map(hour => hour.trim());
     
     if (pay.length === 0) {
       alert("Please select at least one payment method");
@@ -528,24 +557,25 @@ const HandymanRegistration = () => {
         contactNumber: personal.contactNumber,
         emailAddress: personal.emailAddress,
         personalPhoto: photoBase64,
-        skills: services,
-        experience: parseInt(personal.experience),
+        skills: services.filter(s => s !== 'other'), // Filter out 'other' service
+        experience: parseInt(personal.experience) || 0,
         certifications: certs,
-        services: services, // This will be mapped to service IDs
+        services: services.filter(s => s !== 'other'), // Filter out 'other' service
         address: {
-          street: personal.street,
+          street: personal.street || '',
           city: personal.city,
           state: personal.state,
-          zipCode: personal.zipCode,
+          zipCode: personal.zipCode || '',
         },
         availability: {
-          workingDays: days,
-          workingHours: hours,
+          workingDays: workingDaysArray.filter(day => day.trim() !== '').join(', '),
+          workingHours: workingHoursArray.filter(hour => hour.trim() !== '').join(', '),
         },
-        paymentMethod: pay.join(', '),
+        paymentMethod: pay.filter(p => p !== 'other').join(', '),
       };
 
       // Register handyman with backend
+      console.log('Sending handyman data:', handymanData); // Debug log
       const response = await HandymanAPI.registerHandyman(handymanData);
       
       if (response.success) {
@@ -560,6 +590,10 @@ const HandymanRegistration = () => {
           });
         }
         
+        // Set localStorage flag to indicate handyman registration is complete
+        localStorage.setItem("fixfinder_handyman_registered", "true");
+        localStorage.setItem("handyman_user_id", response.data.userId);
+        
         // Show success state
         setShowSuccess(true);
         
@@ -572,7 +606,16 @@ const HandymanRegistration = () => {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
-      alert("There was an error completing your registration. Please try again.");
+      
+      // Show more specific error message if available
+      if (error.response?.data?.message) {
+        alert(`Registration failed: ${error.response.data.message}`);
+      } else if (error.response?.data?.errors) {
+        const errorMessages = error.response.data.errors.join('\n');
+        alert(`Registration failed:\n${errorMessages}`);
+      } else {
+        alert("There was an error completing your registration. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -605,7 +648,7 @@ const HandymanRegistration = () => {
           Fields marked with <span className="text-red-500">*</span> are required
         </p>
         <StepIndicator step={step} />
-        <form onSubmit={handleSubmit}>
+        <form id="handyman-registration-form" onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}>
           {step === 0 && (
             <Step1 data={personal} onChange={handlePersonalChange} />
           )}
@@ -639,40 +682,43 @@ const HandymanRegistration = () => {
               onOtherPayChange={handleOtherPayChange}
             />
           )}
-
-          {/* Navigation buttons */}
-          <div className="flex justify-between mt-8">
-            {step > 0 ? (
-              <button
-                type="button"
-                onClick={handleBack}
-                className="inline-flex items-center gap-1 px-4 py-2 rounded bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 transition"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                Back
-              </button>
-            ) : (
-              <span />
-            )}
-            {step < 3 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-green-600 transition"
-              >
-                Next <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? "Submitting..." : "Submit"}
-              </button>
-            )}
-          </div>
         </form>
+
+        {/* Navigation buttons - moved outside form to prevent accidental submission */}
+        <div className="flex justify-between mt-8">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={handleBack}
+              onMouseDown={(e) => e.preventDefault()}
+              className="inline-flex items-center gap-1 px-4 py-2 rounded bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 transition"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              Back
+            </button>
+          ) : (
+            <span />
+          )}
+          {step < 3 ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              onMouseDown={(e) => e.preventDefault()}
+              className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-gray-200 transition"
+            >
+              Next <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              form="handyman-registration-form"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Submitting..." : "Submit"}
+            </button>
+            )}
+        </div>
       </div>
     </div>
   );
