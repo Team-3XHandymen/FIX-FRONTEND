@@ -1,6 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { SignUpButton, SignInButton, SignedOut, SignedIn } from '@clerk/clerk-react';
 import heroImage from "@/assets/images/Hero.jpg";
 
 const Hero = () => {
@@ -36,11 +37,35 @@ const Hero = () => {
                 Book a Service
               </Button>
             </Link>
-            <Link to="/signup/handyman">
-              <Button size="lg" variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-8">
-                Join as Handyman
-              </Button>
-            </Link>
+            
+            <SignedOut>
+              <SignUpButton mode="modal">
+                <Button size="lg" variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-8">
+                  Get Started
+                </Button>
+              </SignUpButton>
+            </SignedOut>
+            
+            <SignedIn>
+              <Link to="/client/dashboard">
+                <Button size="lg" variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-8">
+                  Go to Dashboard
+                </Button>
+              </Link>
+            </SignedIn>
+          </div>
+          
+          <div className="mt-6 text-center">
+            <SignedOut>
+              <p className="text-gray-300 text-sm">
+                Already have an account?{" "}
+                <SignInButton mode="modal">
+                  <button className="text-green-400 hover:text-green-300 underline">
+                    Sign in here
+                  </button>
+                </SignInButton>
+              </p>
+            </SignedOut>
           </div>
         </div>
       </div>
