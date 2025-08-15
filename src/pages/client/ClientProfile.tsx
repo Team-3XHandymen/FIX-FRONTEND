@@ -1,297 +1,522 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Save, X, User, Phone, Mail, MapPin, Star, Calendar } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
+import { useUser } from '@clerk/clerk-react';
+import { ClientAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+
+interface ClientData {
+  _id: string;
+  userId: string;
+  username: string;
+  email: string;
+  name?: string;
+  mobileNumber?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  location?: string;
+  rating?: number;
+  preferences?: {
+    preferredServices?: string[];
+    preferredTimes?: string[];
+    [key: string]: any;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 const ClientProfile = () => {
-  const userString = localStorage.getItem("fixfinder_user");
-  const user = userString ? JSON.parse(userString) : null;
-  
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    addresses: user?.addresses || []
-  });
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
-  const handleAddressChange = (index: number, field: string, value: string) => {
-    const updatedAddresses = [...formData.addresses];
-    updatedAddresses[index] = {
-      ...updatedAddresses[index],
-      [field]: value
+  const [editData, setEditData] = useState<Partial<ClientData>>({});
+
+  // Load client data from database
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoading(true);
+        const response = await ClientAPI.getClientByUserId(user.id);
+        setClientData(response.data);
+        setEditData(response.data);
+      } catch (error) {
+        console.error('Error loading client data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
-    
-    setFormData(prev => ({
-      ...prev,
-      addresses: updatedAddresses
-    }));
+
+    loadClientData();
+  }, [user, toast]);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditData(clientData || {});
   };
-  
+
   const handleCancel = () => {
-    setFormData({
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      addresses: user?.addresses || []
-    });
     setIsEditing(false);
+    setEditData(clientData || {});
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Update localStorage
-    localStorage.setItem("fixfinder_user", JSON.stringify({
-      ...user,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      addresses: formData.addresses
-    }));
-    
-    setIsEditing(false);
+
+  const handleSave = async () => {
+    if (!user || !clientData) return;
+
+    try {
+      const response = await ClientAPI.updateClientProfile(user.id, editData);
+      setClientData(response.data);
+      setIsEditing(false);
+      
+      // Check if profile is now complete
+      const updatedData = response.data;
+      const profileCompletion = [
+        updatedData.name ? 1 : 0,
+        updatedData.mobileNumber ? 1 : 0,
+        updatedData.address?.street ? 1 : 0
+      ].reduce((sum, field) => sum + field, 0);
+      
+      const completionPercentage = Math.round((profileCompletion / 3) * 100);
+      
+      if (completionPercentage === 100) {
+        toast({
+          title: "🎉 Profile Complete!",
+          description: "Congratulations! Your profile is now 100% complete. You can now place bookings easily!",
+        });
+        
+        // Redirect to dashboard after a short delay to show the completion
+        setTimeout(() => {
+          window.location.href = '/client/dashboard';
+        }, 2000);
+      } else {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully!",
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
-  
-  const addAddress = () => {
-    setFormData(prev => ({
+
+  const handleInputChange = (field: string, value: string) => {
+    setEditData(prev => ({
       ...prev,
-      addresses: [
-        ...prev.addresses, 
-        { type: "Other", street: "", city: "", state: "TX", zip: "" }
-      ]
+      [field]: value
     }));
   };
 
-  return (
-    <ClientDashboardLayout title="Basic Information">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Basic Information</h2>
-          {!isEditing && (
-            <Button variant="ghost" onClick={() => setIsEditing(true)} className="flex items-center">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
+  const handleAddressChange = (field: string, value: string) => {
+    setEditData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value
+      }
+    }));
+  };
+
+  if (isLoading) {
+    return (
+      <ClientDashboardLayout title="Profile" subtitle="Loading your profile...">
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
         </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div className="mb-6 flex items-start">
-                {!isEditing ? (
-                  <div className="mr-4">
-                    <div className="w-20 h-20 bg-orange-100 rounded-full overflow-hidden">
-                      <img 
-                        src="https://randomuser.me/api/portraits/women/68.jpg" 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mr-4">
-                    <div className="w-20 h-20 bg-orange-100 rounded-full overflow-hidden relative">
-                      <img 
-                        src="https://randomuser.me/api/portraits/women/68.jpg" 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                        <span className="text-white text-xs">Change</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+      </ClientDashboardLayout>
+    );
+  }
+
+  if (!clientData) {
+    return (
+      <ClientDashboardLayout title="Profile" subtitle="Profile not found">
+        <div className="text-center py-20">
+          <p className="text-lg text-red-600 mb-4">Failed to load profile</p>
+          <p className="text-gray-600">Please refresh the page or try again later.</p>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
+
+  const profileCompletion = [
+    clientData.name ? 1 : 0,
+    clientData.mobileNumber ? 1 : 0,
+    clientData.address?.street ? 1 : 0
+  ].reduce((sum, field) => sum + field, 0);
+
+  const completionPercentage = Math.round((profileCompletion / 3) * 100);
+
+  return (
+    <ClientDashboardLayout title="Profile" subtitle="Manage your account information">
+      <div className="space-y-6">
+        {/* Profile Header */}
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {clientData.name ? clientData.name.charAt(0).toUpperCase() : clientData.username.charAt(0).toUpperCase()}
+                </div>
                 <div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                      />
-                    ) : (
-                      <p>{formData.name}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                      />
-                    ) : (
-                      <p>{formData.phone}</p>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {clientData.name || clientData.username}
+                  </h2>
+                  <p className="text-gray-600">@{clientData.username}</p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      {(() => {
+                        const currentCompletion = [
+                          editData.name ? 1 : 0,
+                          editData.mobileNumber ? 1 : 0,
+                          editData.address?.street ? 1 : 0
+                        ].reduce((sum, field) => sum + field, 0);
+                        return Math.round((currentCompletion / 3) * 100);
+                      })()}% Complete
+                    </Badge>
+                    {clientData.rating && (
+                      <div className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                        <span className="text-sm text-gray-600">{clientData.rating}/5</span>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
+              <div className="flex space-x-2">
+                {!isEditing ? (
+                  <Button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-700">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                ) : (
+                  <>
+                    <Button onClick={handleCancel} variant="outline">
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
+          </CardHeader>
+        </Card>
+
+        {/* Real-time Progress Bar */}
+        {isEditing && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-orange-800">Live Progress</span>
+                <span className="text-xs text-orange-600">
+                  {(() => {
+                    const currentCompletion = [
+                      editData.name ? 1 : 0,
+                      editData.mobileNumber ? 1 : 0,
+                      editData.address?.street ? 1 : 0
+                    ].reduce((sum, field) => sum + field, 0);
+                    return `${currentCompletion}/3 fields completed`;
+                  })()}
+                </span>
+              </div>
+              <div className="w-full bg-orange-200 rounded-full h-2">
+                <div 
+                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${(() => {
+                      const currentCompletion = [
+                        editData.name ? 1 : 0,
+                        editData.mobileNumber ? 1 : 0,
+                        editData.address?.street ? 1 : 0
+                      ].reduce((sum, field) => sum + field, 0);
+                      return Math.round((currentCompletion / 3) * 100);
+                    })()}%` 
+                  }}
+                ></div>
+              </div>
+              <div className="mt-2 text-xs text-orange-600">
+                {(() => {
+                  const currentCompletion = [
+                    editData.name ? 1 : 0,
+                    editData.mobileNumber ? 1 : 0,
+                    editData.address?.street ? 1 : 0
+                  ].reduce((sum, field) => sum + field, 0);
+                  
+                  if (currentCompletion === 3) {
+                    return "🎉 All fields completed! Click Save to complete your profile.";
+                  } else if (currentCompletion === 2) {
+                    return "Almost there! Just one more field to complete your profile.";
+                  } else if (currentCompletion === 1) {
+                    return "Good start! Keep going to complete your profile.";
+                  } else {
+                    return "Let's get started! Fill in your details to complete your profile.";
+                  }
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Profile Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Personal Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <User className="h-5 w-5 text-blue-600" />
+                <span>Personal Information</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Full Name</Label>
                 {isEditing ? (
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                  <Input
+                    value={editData.name || ''}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    placeholder="Enter your full name"
+                    className="mt-1"
                   />
                 ) : (
-                  <p>{formData.email}</p>
+                  <p className="mt-1 text-gray-900">
+                    {clientData.name || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
                 )}
               </div>
-            </div>
-          </div>
-          
-          {/* Addresses */}
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-medium">Addresses</h3>
-              {isEditing && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={addAddress} 
-                  className="text-xs px-2 py-1 h-auto"
-                >
-                  + Add Address
-                </Button>
-              )}
-            </div>
-            
-            {formData.addresses.map((address: any, index: number) => (
-              <div key={index} className="border rounded-md p-4 mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center">
-                    <label className="block text-sm font-medium text-gray-700 mr-2">
-                      Type:
-                    </label>
-                    {isEditing ? (
-                      <select
-                        value={address.type}
-                        onChange={(e) => handleAddressChange(index, 'type', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1"
-                      >
-                        <option value="Home">Home</option>
-                        <option value="Work">Work</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    ) : (
-                      <span className="inline-block bg-gray-100 px-2 py-1 rounded text-sm">{address.type}</span>
-                    )}
-                  </div>
-                  {isEditing && (
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      className="text-gray-500 h-6 w-6 p-0"
-                      onClick={() => {
-                        const updatedAddresses = formData.addresses.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, addresses: updatedAddresses }));
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Username</Label>
+                <p className="mt-1 text-gray-900">{clientData.username}</p>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                <p className="mt-1 text-gray-900">{clientData.email}</p>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Mobile Number</Label>
+                {isEditing ? (
+                  <Input
+                    value={editData.mobileNumber || ''}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+                    placeholder="Enter your mobile number"
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="mt-1 text-gray-900">
+                    {clientData.mobileNumber || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contact & Location */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5 text-green-600" />
+                <span>Location & Contact</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">General Location</Label>
+                {isEditing ? (
+                  <Input
+                    value={editData.location || ''}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="Enter your general location"
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="mt-1 text-gray-900">
+                    {clientData.location || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Street Address</Label>
+                {isEditing ? (
+                  <Input
+                    value={editData.address?.street || ''}
+                    onChange={(e) => handleAddressChange('street', e.target.value)}
+                    placeholder="Enter street address"
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="mt-1 text-gray-900">
+                    {clientData.address?.street || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">City</Label>
+                  {isEditing ? (
+                    <Input
+                      value={editData.address?.city || ''}
+                      onChange={(e) => handleAddressChange('city', e.target.value)}
+                      placeholder="City"
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="mt-1 text-gray-900">
+                      {clientData.address?.city || <span className="text-gray-400 italic">-</span>}
+                    </p>
                   )}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
-                  <div className="col-span-full md:col-span-2">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={address.street}
-                        onChange={(e) => handleAddressChange(index, 'street', e.target.value)}
-                        placeholder="Street Address"
-                        className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                      />
-                    ) : (
-                      <p>{address.street}</p>
-                    )}
-                  </div>
-                  <div>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={address.city}
-                        onChange={(e) => handleAddressChange(index, 'city', e.target.value)}
-                        placeholder="City"
-                        className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                      />
-                    ) : (
-                      <p>{address.city}</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={address.state}
-                          onChange={(e) => handleAddressChange(index, 'state', e.target.value)}
-                          placeholder="State"
-                          className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                        />
-                      ) : (
-                        <p>{address.state}</p>
-                      )}
-                    </div>
-                    <div>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={address.zip}
-                          onChange={(e) => handleAddressChange(index, 'zip', e.target.value)}
-                          placeholder="ZIP"
-                          className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                        />
-                      ) : (
-                        <p>{address.zip}</p>
-                      )}
-                    </div>
-                  </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">State</Label>
+                  {isEditing ? (
+                    <Input
+                      value={editData.address?.state || ''}
+                      onChange={(e) => handleAddressChange('state', e.target.value)}
+                      placeholder="State"
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="mt-1 text-gray-900">
+                      {clientData.address?.state || <span className="text-gray-400 italic">-</span>}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">ZIP Code</Label>
+                  {isEditing ? (
+                    <Input
+                      value={editData.address?.zipCode || ''}
+                      onChange={(e) => handleAddressChange('zipCode', e.target.value)}
+                      placeholder="ZIP"
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="mt-1 text-gray-900">
+                      {clientData.address?.zipCode || <span className="text-gray-400 italic">-</span>}
+                    </p>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-          
-          {isEditing && (
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white">
-                Save Changes
-              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Account Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-purple-600" />
+              <span>Account Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Member Since</Label>
+                <p className="mt-1 text-gray-900">
+                  {new Date(clientData.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
+                <p className="mt-1 text-gray-900">
+                  {new Date(clientData.updatedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Profile Status</Label>
+                <div className="mt-1">
+                  <Badge 
+                    variant={completionPercentage === 100 ? "default" : "secondary"}
+                    className={completionPercentage === 100 ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                  >
+                    {completionPercentage === 100 ? "Complete" : "Incomplete"}
+                  </Badge>
+                </div>
+              </div>
             </div>
-          )}
-        </form>
+          </CardContent>
+        </Card>
+
+        {/* Preferences */}
+        {clientData.preferences && Object.keys(clientData.preferences).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferences</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {clientData.preferences.preferredServices && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Preferred Services</Label>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {clientData.preferences.preferredServices.map((service, index) => (
+                        <Badge key={index} variant="outline">
+                          {service}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {clientData.preferences.preferredTimes && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Preferred Times</Label>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {clientData.preferences.preferredTimes.map((time, index) => (
+                        <Badge key={index} variant="outline">
+                          {time}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </ClientDashboardLayout>
   );

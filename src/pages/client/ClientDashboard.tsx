@@ -176,6 +176,110 @@ const ClientDashboard = () => {
   }
 
   return <ClientDashboardLayout title={`Welcome back, ${displayName}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
+        {/* Profile Completion Segment */}
+        {clientData && (() => {
+          // Check if profile is incomplete (missing required fields)
+          const profileCompletion = [
+            clientData.name ? 1 : 0,
+            clientData.mobileNumber ? 1 : 0,
+            clientData.address?.street ? 1 : 0
+          ].reduce((sum, field) => sum + field, 0);
+          
+          const completionPercentage = Math.round((profileCompletion / 3) * 100);
+          
+          // Only show the segment if profile is incomplete
+          if (completionPercentage === 100) {
+            return null; // Don't show the segment when profile is complete
+          }
+          
+          return (
+            <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Let's complete your profile together! 
+                  </h3>
+                  <p className="text-blue-700 text-sm">
+                    Please provide your address and mobile number to begin placing bookings easily.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {completionPercentage}%
+                  </div>
+                  <div className="text-xs text-blue-500">Complete</div>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs text-blue-600 mb-2">
+                  <span>Profile Progress</span>
+                  <span>Step {profileCompletion + 1} of 3</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${completionPercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Profile Fields Status */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className={`flex items-center p-3 rounded-lg ${clientData.name ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.name ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <div>
+                    <div className={`text-sm font-medium ${clientData.name ? 'text-green-800' : 'text-orange-800'}`}>
+                      Full Name
+                    </div>
+                    <div className={`text-xs ${clientData.name ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.name ? '✓ Completed' : 'Missing'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`flex items-center p-3 rounded-lg ${clientData.mobileNumber ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.mobileNumber ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <div>
+                    <div className={`text-sm font-medium ${clientData.mobileNumber ? 'text-green-800' : 'text-orange-800'}`}>
+                      Mobile Number
+                    </div>
+                    <div className={`text-xs ${clientData.mobileNumber ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.mobileNumber ? '✓ Completed' : 'Missing'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`flex items-center p-3 rounded-lg ${clientData.address?.street ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.address?.street ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <div>
+                    <div className={`text-sm font-medium ${clientData.address?.street ? 'text-green-800' : 'text-orange-800'}`}>
+                      Address
+                    </div>
+                    <div className={`text-xs ${clientData.address?.street ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.address?.street ? '✓ Completed' : 'Missing'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Call to Action */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-blue-600">
+                  <span className="font-medium">💡 Tip:</span> Complete profiles get faster service and better handyman matching!
+                </div>
+                <Button 
+                  onClick={() => navigate('/client/profile')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+                >
+                  Complete Profile
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Search Bar */}
         <div className="relative mb-8">
          <Input
