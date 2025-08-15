@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration - Load from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000');
 const NODE_ENV = import.meta.env.VITE_NODE_ENV || 'development';
 
@@ -13,6 +13,13 @@ const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for CORS with credentials
+});
+
+// Debug logging
+console.log('API Configuration:', {
+  baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT,
+  nodeEnv: NODE_ENV
 });
 
 // Request interceptor to add auth token
@@ -252,6 +259,28 @@ export class HandymanAPI {
 
   static async getServiceProvidersByServiceId(serviceId: string) {
     const response = await api.get(`/handyman/service/${serviceId}`);
+    return response.data;
+  }
+}
+
+export class ClientAPI {
+  static async createClient(clientData: { userId: string; username: string; email: string }) {
+    const response = await api.post('/clients', clientData);
+    return response.data;
+  }
+
+  static async getClientByUserId(userId: string) {
+    const response = await api.get(`/clients/${userId}`);
+    return response.data;
+  }
+
+  static async updateClientProfile(userId: string, profileData: any) {
+    const response = await api.put(`/clients/${userId}`, profileData);
+    return response.data;
+  }
+
+  static async getAllClients() {
+    const response = await api.get('/clients');
     return response.data;
   }
 }

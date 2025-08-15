@@ -1,22 +1,57 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, MessageSquare, Wrench, Loader2 } from "lucide-react";
+import { Search, MessageSquare, Loader2 } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { useServices } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
+import { ClientAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { isApiError } from "@/lib/utils";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { toast } = useToast();
   const [selectedBooking, setSelectedBooking] = useState<typeof bookings[number] | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [search, setSearch] = useState("");
+    const [clientData, setClientData] = useState<any>(null);
+  const [isLoadingClient, setIsLoadingClient] = useState(true);
 
   // Fetch services from backend
   const { data: servicesResponse, isLoading, error } = useServices();
+
+  // Load client data from database when user logs in
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoadingClient(true);
+        
+        const existingClient = await ClientAPI.getClientByUserId(user.id);
+        setClientData(existingClient.data);
+        
+      } catch (error: unknown) {
+        console.error('Error loading client data:', error);
+        
+        if (isApiError(error, 404)) {
+          toast({
+            title: "Profile not found",
+            description: "Please contact support or try signing up again.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setIsLoadingClient(false);
+      }
+    };
+
+    loadClientData();
+  }, [user, toast]);
 
   // Extract services from API response and sort alphabetically
   const services = useMemo(() => {
@@ -109,18 +144,49 @@ const ClientDashboard = () => {
     completed: bookings.filter(b => b.status === "completed")
   };
 
-  return <ClientDashboardLayout title={`Welcome back, ${user?.firstName || 'Client'}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
-      {/* Search Bar */}
-      <div className="relative mb-8">
-        <Input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search Services"
-          className="pl-10"
-        />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-      </div>
+  // Use database username if available, fallback to Clerk data
+  const displayName = clientData?.username || user?.username || user?.firstName || 'Client';
+  
+  // Show loading state while client data is being fetched
+  if (isLoadingClient) {
+    return (
+      <ClientDashboardLayout title="Loading..." subtitle="Please wait while we load your profile..." showHomeIcon={false} showHandymanButton={true}>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <span className="text-lg text-gray-600">Loading your profile...</span>
+          </div>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
+
+  // Show error state if client data failed to load
+  if (!clientData && !isLoadingClient) {
+    return (
+      <ClientDashboardLayout title="Profile Error" subtitle="Unable to load your profile" showHomeIcon={false} showHandymanButton={true}>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-lg text-red-600 mb-4">Failed to load your profile</p>
+            <p className="text-gray-600">Please refresh the page or try again later.</p>
+          </div>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
+
+  return <ClientDashboardLayout title={`Welcome back, ${displayName}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
+        {/* Search Bar */}
+        <div className="relative mb-8">
+         <Input
+           type="text"
+           value={search}
+           onChange={e => setSearch(e.target.value)}
+           placeholder="Search Services"
+           className="pl-10"
+         />
+         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+       </div>
 
       {/* Search Results */}
       {search.trim() && (
