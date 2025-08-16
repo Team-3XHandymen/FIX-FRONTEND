@@ -4,7 +4,6 @@ import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import BookingDetailsDialog from "@/components/client/BookingDetailsDialog";
 import { HandymanAPI } from "@/lib/api";
 
 interface Professional {
@@ -39,7 +38,6 @@ const SelectProfessional = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const service = location.state?.service;
-  const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [originalProfessionals, setOriginalProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -286,16 +284,26 @@ const SelectProfessional = () => {
                   <div className="text-lg font-semibold">{professional.distance} km</div>
                   <div className="text-sm text-gray-600">Away</div>
                 </div>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    onClick={() => navigate('/client/create-booking', { 
+                      state: { 
+                        service, 
+                        professional,
+                        serviceId: service._id,
+                        providerId: professional.userId
+                      } 
+                    })}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6"
+                  >
+                    Hire Now
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      <BookingDetailsDialog
-        open={showBookingDialog}
-        onOpenChange={setShowBookingDialog}
-      />
     </ClientDashboardLayout>
   );
 };

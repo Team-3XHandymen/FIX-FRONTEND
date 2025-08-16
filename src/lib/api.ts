@@ -18,21 +18,11 @@ const api: AxiosInstance = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or Clerk
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // For Clerk authentication, we'll get the token from the current user session
+    // The token will be handled by Clerk's authentication system
     
-    // Add user ID and type headers for backend authentication
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    if (userId) {
-      config.headers['X-User-ID'] = userId;
-    }
-    if (userType) {
-      config.headers['X-User-Type'] = userType;
-    }
+    // Remove the localStorage-based authentication since we're using Clerk
+    // The backend should handle Clerk's JWT tokens directly
     
     return config;
   },
@@ -47,11 +37,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle common errors
+    // Handle common errors without automatic redirects
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login/client';
+      // Unauthorized - log the error but don't redirect automatically
+      console.error('Authentication error:', error.response.data);
+      // Let the component handle the error appropriately
     } else if (error.response?.status === 403) {
       // Forbidden
       console.error('Access forbidden');

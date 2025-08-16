@@ -88,11 +88,8 @@ const ClientSignUp = () => {
             Sign up with Google
           </Button>
           <div className="text-center mt-4">
-            <p className="text-sm">
-              Already have an account?{" "}
-              <Link to="/login/client" className="text-green-600 hover:underline">
-                Log in as client
-              </Link>
+            <p className="text-sm text-gray-600">
+              Account creation is handled by Clerk authentication.
             </p>
           </div>
         </div>

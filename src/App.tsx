@@ -9,7 +9,6 @@ import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import ClientSignUp from "./pages/ClientSignUp";
-import ClientLogin from "./pages/ClientLogin";
 import HandymanLogin from "./pages/HandymanLogin";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientProfile from "./pages/client/ClientProfile";
@@ -30,6 +29,7 @@ import HandymanBilling from "./pages/handyman/HandymanBilling";
 import CompleteProfile from "./pages/CompleteProfile";
 import ServiceDetails from "./pages/client/ServiceDetails";
 import SelectProfessional from "./pages/client/SelectProfessional";
+import CreateBooking from "./pages/client/CreateBooking";
 import HandymanRegistration from "./pages/HandymanRegistration";
 import ClientChat from "./pages/client/ClientChat";
 import ServiceCatalog from "./pages/client/ServiceCatalog";
@@ -50,7 +50,6 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/signup/client" element={<ClientSignUp />} />
           <Route path="/signup/handyman" element={<HandymanRegistration />} />
-          <Route path="/login/client" element={<ClientLogin />} />
           <Route path="/login/handyman" element={<HandymanLogin />} />
           <Route path="/client/dashboard" element={<ClientDashboard />} />
           <Route path="/client/service-details" element={<ServiceDetails />} />
@@ -62,6 +61,7 @@ const App = () => (
           <Route path="/client/account-settings" element={<ClientAccountSettings />} />
           <Route path="/client/complete-profile" element={<CompleteProfile />} />
           <Route path="/client/chat/:bookingId" element={<ClientChat />} />
+          <Route path="/client/create-booking" element={<CreateBooking />} />
           <Route path="/handyman/dashboard" element={<HandymanDashboard />} />
           <Route path="/handyman/schedule" element={<HandymanSchedule />} />
           <Route path="/handyman/jobs" element={<HandymanJobs />} />
