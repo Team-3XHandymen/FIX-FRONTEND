@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+// API Configuration - Load from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000');
+const NODE_ENV = import.meta.env.VITE_NODE_ENV || 'development';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -12,6 +13,13 @@ const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for CORS with credentials
+});
+
+// Debug logging
+console.log('API Configuration:', {
+  baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT,
+  nodeEnv: NODE_ENV
 });
 
 // Request interceptor to add auth token
@@ -65,9 +73,7 @@ api.interceptors.response.use(
 // API Service Classes
 export class ServicesAPI {
   static async getAllServices() {
-    console.log('Fetching services from:', `${API_BASE_URL}/services`);
     const response = await api.get('/services');
-    console.log('Services API response:', response.data);
     return response.data;
   }
 
@@ -252,10 +258,29 @@ export class HandymanAPI {
   }
 
   static async getServiceProvidersByServiceId(serviceId: string) {
-    console.log("Calling API for service ID:", serviceId); // Debug log
-    console.log("Full API URL:", `${API_BASE_URL}/handyman/service/${serviceId}`); // Debug log
     const response = await api.get(`/handyman/service/${serviceId}`);
-    console.log("Raw API response:", response); // Debug log
+    return response.data;
+  }
+}
+
+export class ClientAPI {
+  static async createClient(clientData: { userId: string; username: string; email: string }) {
+    const response = await api.post('/clients', clientData);
+    return response.data;
+  }
+
+  static async getClientByUserId(userId: string) {
+    const response = await api.get(`/clients/${userId}`);
+    return response.data;
+  }
+
+  static async updateClientProfile(userId: string, profileData: any) {
+    const response = await api.put(`/clients/${userId}`, profileData);
+    return response.data;
+  }
+
+  static async getAllClients() {
+    const response = await api.get('/clients');
     return response.data;
   }
 }

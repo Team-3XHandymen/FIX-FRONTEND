@@ -10,7 +10,7 @@ const ServiceDetails = () => {
   const navigate = useNavigate();
   const service = location.state?.service;
   
-  console.log("ServiceDetails - Service object:", service); // Debug log
+
 
   // Use actual service data from MongoDB
   const serviceDetails = {

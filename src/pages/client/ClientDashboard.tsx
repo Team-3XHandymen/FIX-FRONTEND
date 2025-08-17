@@ -1,22 +1,57 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, MessageSquare, Wrench, Loader2 } from "lucide-react";
+import { Search, MessageSquare, Loader2 } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { useServices } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
+import { ClientAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { isApiError } from "@/lib/utils";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { toast } = useToast();
   const [selectedBooking, setSelectedBooking] = useState<typeof bookings[number] | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [search, setSearch] = useState("");
+    const [clientData, setClientData] = useState<any>(null);
+  const [isLoadingClient, setIsLoadingClient] = useState(true);
 
   // Fetch services from backend
   const { data: servicesResponse, isLoading, error } = useServices();
+
+  // Load client data from database when user logs in
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoadingClient(true);
+        
+        const existingClient = await ClientAPI.getClientByUserId(user.id);
+        setClientData(existingClient.data);
+        
+      } catch (error: unknown) {
+        console.error('Error loading client data:', error);
+        
+        if (isApiError(error, 404)) {
+          toast({
+            title: "Profile not found",
+            description: "Please contact support or try signing up again.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setIsLoadingClient(false);
+      }
+    };
+
+    loadClientData();
+  }, [user, toast]);
 
   // Extract services from API response and sort alphabetically
   const services = useMemo(() => {
@@ -109,18 +144,153 @@ const ClientDashboard = () => {
     completed: bookings.filter(b => b.status === "completed")
   };
 
-  return <ClientDashboardLayout title={`Welcome back, ${user?.firstName || 'Client'}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
-      {/* Search Bar */}
-      <div className="relative mb-8">
-        <Input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search Services"
-          className="pl-10"
-        />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-      </div>
+  // Use database username if available, fallback to Clerk data
+  const displayName = clientData?.username || user?.username || user?.firstName || 'Client';
+  
+  // Show loading state while client data is being fetched
+  if (isLoadingClient) {
+    return (
+      <ClientDashboardLayout title="Loading..." subtitle="Please wait while we load your profile..." showHomeIcon={false} showHandymanButton={true}>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <span className="text-lg text-gray-600">Loading your profile...</span>
+          </div>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
+
+  // Show error state if client data failed to load
+  if (!clientData && !isLoadingClient) {
+    return (
+      <ClientDashboardLayout title="Profile Error" subtitle="Unable to load your profile" showHomeIcon={false} showHandymanButton={true}>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-lg text-red-600 mb-4">Failed to load your profile</p>
+            <p className="text-gray-600">Please refresh the page or try again later.</p>
+          </div>
+        </div>
+      </ClientDashboardLayout>
+    );
+  }
+
+  return <ClientDashboardLayout title={`Welcome back, ${displayName}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
+        {/* Profile Completion Segment */}
+        {clientData && (() => {
+          // Check if profile is incomplete (missing required fields)
+          const profileCompletion = [
+            clientData.name ? 1 : 0,
+            clientData.mobileNumber ? 1 : 0,
+            clientData.address?.street ? 1 : 0
+          ].reduce((sum, field) => sum + field, 0);
+          
+          const completionPercentage = Math.round((profileCompletion / 3) * 100);
+          
+          // Only show the segment if profile is incomplete
+          if (completionPercentage === 100) {
+            return null; // Don't show the segment when profile is complete
+          }
+          
+          return (
+            <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Let's complete your profile together! 
+                  </h3>
+                  <p className="text-blue-700 text-sm">
+                    Please provide your address and mobile number to begin placing bookings easily.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {completionPercentage}%
+                  </div>
+                  <div className="text-xs text-blue-500">Complete</div>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs text-blue-600 mb-2">
+                  <span>Profile Progress</span>
+                  <span>Step {profileCompletion + 1} of 3</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${completionPercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Profile Fields Status */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className={`flex items-center p-3 rounded-lg ${clientData.name ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.name ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <div>
+                    <div className={`text-sm font-medium ${clientData.name ? 'text-green-800' : 'text-orange-800'}`}>
+                      Full Name
+                    </div>
+                    <div className={`text-xs ${clientData.name ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.name ? '✓ Completed' : 'Missing'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`flex items-center p-3 rounded-lg ${clientData.mobileNumber ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.mobileNumber ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <div>
+                    <div className={`text-sm font-medium ${clientData.mobileNumber ? 'text-green-800' : 'text-orange-800'}`}>
+                      Mobile Number
+                    </div>
+                    <div className={`text-xs ${clientData.mobileNumber ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.mobileNumber ? '✓ Completed' : 'Missing'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`flex items-center p-3 rounded-lg ${clientData.address?.street ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.address?.street ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <div>
+                    <div className={`text-sm font-medium ${clientData.address?.street ? 'text-green-800' : 'text-orange-800'}`}>
+                      Address
+                    </div>
+                    <div className={`text-xs ${clientData.address?.street ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.address?.street ? '✓ Completed' : 'Missing'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Call to Action */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-blue-600">
+                  <span className="font-medium">💡 Tip:</span> Complete profiles get faster service and better handyman matching!
+                </div>
+                <Button 
+                  onClick={() => navigate('/client/profile')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+                >
+                  Complete Profile
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Search Bar */}
+        <div className="relative mb-8">
+         <Input
+           type="text"
+           value={search}
+           onChange={e => setSearch(e.target.value)}
+           placeholder="Search Services"
+           className="pl-10"
+         />
+         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+       </div>
 
       {/* Search Results */}
       {search.trim() && (
