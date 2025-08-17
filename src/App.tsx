@@ -9,6 +9,7 @@ import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import ClientSignUp from "./pages/ClientSignUp";
+import ClientLogin from "./pages/ClientLogin";
 import HandymanLogin from "./pages/HandymanLogin";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientProfile from "./pages/client/ClientProfile";
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/signup/client" element={<ClientSignUp />} />
           <Route path="/signup/handyman" element={<HandymanRegistration />} />
+          <Route path="/login/client" element={<ClientLogin />} />
           <Route path="/login/handyman" element={<HandymanLogin />} />
           <Route path="/client/dashboard" element={<ClientDashboard />} />
           <Route path="/client/service-details" element={<ServiceDetails />} />

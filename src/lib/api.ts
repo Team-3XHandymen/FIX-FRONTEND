@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// API Configuration - Use relative path for Vite proxy
-const API_BASE_URL = '/api';
+// API Configuration - Load from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000');
+const NODE_ENV = import.meta.env.VITE_NODE_ENV || 'development';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -14,14 +15,31 @@ const api: AxiosInstance = axios.create({
   withCredentials: true, // Important for CORS with credentials
 });
 
+// Debug logging
+console.log('API Configuration:', {
+  baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT,
+  nodeEnv: NODE_ENV
+});
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // For Clerk authentication, we'll get the token from the current user session
-    // The token will be handled by Clerk's authentication system
+    // Get token from localStorage or Clerk
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     
-    // Remove the localStorage-based authentication since we're using Clerk
-    // The backend should handle Clerk's JWT tokens directly
+    // Add user ID and type headers for backend authentication
+    const userId = localStorage.getItem('user_id');
+    const userType = localStorage.getItem('user_type');
+    if (userId) {
+      config.headers['X-User-ID'] = userId;
+    }
+    if (userType) {
+      config.headers['X-User-Type'] = userType;
+    }
     
     return config;
   },
@@ -36,11 +54,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle common errors without automatic redirects
+    // Handle common errors
     if (error.response?.status === 401) {
-      // Unauthorized - log the error but don't redirect automatically
-      console.error('Authentication error:', error.response.data);
-      // Let the component handle the error appropriately
+      // Unauthorized - redirect to login
+      localStorage.removeItem('auth_token');
+      window.location.href = '/login/client';
     } else if (error.response?.status === 403) {
       // Forbidden
       console.error('Access forbidden');
