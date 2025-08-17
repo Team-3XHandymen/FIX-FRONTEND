@@ -1,20 +1,36 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useUser } from '@clerk/clerk-react';
-import { useAuth } from '@clerk/clerk-react';
-import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, User, Wrench, FileText, ArrowLeft, CheckCircle } from "lucide-react";
-import { BookingsAPI } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Wrench, User, FileText, MapPin, Calendar, Clock, Paperclip, CheckCircle } from 'lucide-react';
+import ClientDashboardLayout from '@/components/client/ClientDashboardLayout';
 
-interface CreateBookingFormData {
+interface Service {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+}
+
+interface Professional {
+  _id: string;
+  userId: string;
+  name: string;
+  title: string;
+  rating: number;
+  reviews: number;
+  experience: number;
+  specializations: string[];
+}
+
+interface FormData {
   description: string;
   location: {
     address: string;
@@ -23,112 +39,107 @@ interface CreateBookingFormData {
       lng: number;
     };
   };
-  scheduledTime: string;
   scheduledDate: string;
-  attachments?: File[];
+  scheduledTime: string;
+  attachments: File[];
 }
 
-const CreateBooking = () => {
+const CreateBooking: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useUser();
   const { getToken } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
   
   const { service, professional, serviceId, providerId } = location.state || {};
   
-  const [formData, setFormData] = useState<CreateBookingFormData>({
-    description: "",
-    location: {
-      address: "",
-    },
-    scheduledTime: "",
-    scheduledDate: "",
-    attachments: [],
+  const [formData, setFormData] = useState<FormData>({
+    description: '',
+    location: { address: '' },
+    scheduledDate: '',
+    scheduledTime: '',
+    attachments: []
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [bookingId, setBookingId] = useState<string>("");
+  const [bookingId, setBookingId] = useState<string>('');
 
   // Redirect if no service or professional data
-  if (!service || !professional) {
-    navigate('/client/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    if (!service || !professional || !serviceId || !providerId) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a service and professional first.",
+        variant: "destructive",
+      });
+      navigate('/client/services');
+    }
+  }, [service, professional, serviceId, providerId, navigate, toast]);
 
-  // Check if user is authenticated
-  if (!user || !user.id) {
-    console.error('User not authenticated');
-    toast({
-      title: "Authentication Error",
-      description: "Please log in to create a booking.",
-      variant: "destructive",
-    });
-    return null;
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleLocationChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        address: value
-      }
-    }));
+  const handleInputChange = (field: keyof FormData, value: any) => {
+    if (field === 'location') {
+      setFormData(prev => ({
+        ...prev,
+        location: { ...prev.location, address: value }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setFormData(prev => ({
-      ...prev,
-      attachments: [...(prev.attachments || []), ...files]
-    }));
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...filesArray]
+      }));
+    }
   };
 
   const removeFile = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      attachments: prev.attachments?.filter((_, i) => i !== index) || []
+      attachments: prev.attachments.filter((_, i) => i !== index)
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!user) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowReviewDialog(true);
+  };
 
+  const handleConfirmBooking = async () => {
+    if (!getToken || !user) return;
+    
     setIsSubmitting(true);
     
     try {
-      // Get the Clerk session token
       const token = await getToken();
       
-      // Combine date and time
+      // Combine date and time into a single scheduledTime
       const scheduledDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
       
       const requestBody = {
+        serviceId,
+        providerId,
         description: formData.description,
         location: formData.location,
-        providerId,
-        serviceId,
-        scheduledTime: scheduledDateTime.toISOString(),
-        status: "pending"
+        scheduledTime: scheduledDateTime.toISOString(), // Send as ISO string
+        attachments: formData.attachments
       };
-      
-      // Create a custom API instance with the Clerk token
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-User-ID': user.id,
+          'X-User-ID': user.id, // Use the actual client's user ID
           'X-User-Type': 'client',
         },
         body: JSON.stringify(requestBody)
@@ -173,6 +184,10 @@ const CreateBooking = () => {
            formData.scheduledTime !== "";
   };
 
+  if (!service || !professional) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <ClientDashboardLayout title="Create Booking" subtitle="Request service from your selected professional">
       <div className="space-y-6">
@@ -215,203 +230,209 @@ const CreateBooking = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Job Description */}
-            <div>
-              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
-                Job Description *
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Describe the job or service you need in detail..."
-                className="mt-1 min-h-[100px]"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Be specific about what you need done. Include any special requirements or preferences.
-              </p>
-            </div>
-
-            {/* Location */}
-            <div>
-              <Label htmlFor="location" className="text-sm font-medium text-gray-700">
-                Service Location *
-              </Label>
-              <div className="mt-1 flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <Input
-                  id="location"
-                  value={formData.location.address}
-                  onChange={(e) => handleLocationChange(e.target.value)}
-                  placeholder="Enter the exact address where service is needed"
-                  className="flex-1"
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Job Description */}
+              <div>
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                  Job Description *
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Describe the job or service you need in detail..."
+                  className="mt-1 min-h-[100px]"
                   required
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Provide the complete address where the service provider should come.
-              </p>
-            </div>
 
-            {/* Date and Time */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Location */}
               <div>
-                <Label htmlFor="date" className="text-sm font-medium text-gray-700">
-                  Preferred Date *
+                <Label htmlFor="address" className="text-sm font-medium text-gray-700">
+                  Service Location *
                 </Label>
-                <div className="mt-1 flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
+                <div className="mt-1 relative">
+                  <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <Input
-                    id="date"
-                    type="date"
-                    value={formData.scheduledDate}
-                    onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="flex-1"
+                    id="address"
+                    type="text"
+                    value={formData.location.address}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="Enter the address where you need the service..."
+                    className="pl-10"
                     required
                   />
                 </div>
               </div>
-              
-              <div>
-                <Label htmlFor="time" className="text-sm font-medium text-gray-700">
-                  Preferred Time *
-                </Label>
-                <div className="mt-1 flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <Input
-                    id="time"
-                    type="time"
-                    value={formData.scheduledTime}
-                    onChange={(e) => handleInputChange('scheduledTime', e.target.value)}
-                    className="flex-1"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
 
-            {/* Attachments */}
-            <div>
-              <Label htmlFor="attachments" className="text-sm font-medium text-gray-700">
-                Attachments (Optional)
-              </Label>
-              <div className="mt-1">
-                <Input
-                  id="attachments"
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                  className="cursor-pointer"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Upload photos, documents, or any relevant files to help describe your request.
-                </p>
-              </div>
-              
-              {/* File List */}
-              {formData.attachments && formData.attachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {formData.attachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-700">{file.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(index)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
+              {/* Date and Time */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="scheduledDate" className="text-sm font-medium text-gray-700">
+                    Preferred Date *
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                    <Input
+                      id="scheduledDate"
+                      type="date"
+                      value={formData.scheduledDate}
+                      onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
+                      className="pl-10"
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+                
+                <div>
+                  <Label htmlFor="scheduledTime" className="text-sm font-medium text-gray-700">
+                    Preferred Time *
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                    <Input
+                      id="scheduledTime"
+                      type="time"
+                      value={formData.scheduledTime}
+                      onChange={(e) => handleInputChange('scheduledTime', e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* File Attachments */}
+              <div>
+                <Label htmlFor="attachments" className="text-sm font-medium text-gray-700">
+                  Attachments (Optional)
+                </Label>
+                <div className="mt-1">
+                  <Input
+                    id="attachments"
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    className="cursor-pointer"
+                    accept="image/*,.pdf,.doc,.docx"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload images, documents, or other files related to your service request
+                  </p>
+                </div>
+                
+                {/* Display selected files */}
+                {formData.attachments.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {formData.attachments.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                        <div className="flex items-center space-x-2">
+                          <Paperclip className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-700">{file.name}</span>
+                          <span className="text-xs text-gray-500">
+                            ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  disabled={!isFormValid()}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
+                >
+                  Review & Submit Booking
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
-
-        {/* Action Buttons */}
-        <div className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Professionals</span>
-          </Button>
-          
-          <Button
-            onClick={() => setShowReviewDialog(true)}
-            disabled={!isFormValid() || isSubmitting}
-            className="bg-green-600 hover:bg-green-700 text-white px-8"
-          >
-            {isSubmitting ? "Creating..." : "Review & Submit"}
-          </Button>
-        </div>
       </div>
 
       {/* Review Dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Review Your Booking</DialogTitle>
-            <DialogDescription>
-              Please review the details below before submitting your service request.
-            </DialogDescription>
+            <DialogTitle className="flex items-center space-x-2">
+              <CheckCircle className="h-6 w-6 text-blue-600" />
+              <span>Review Your Booking</span>
+            </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Service</Label>
-                <p className="text-gray-900">{service.name}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Professional</Label>
-                <p className="text-gray-900">{professional.name}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Date</Label>
-                <p className="text-gray-900">
-                  {new Date(formData.scheduledDate).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Time</Label>
-                <p className="text-gray-900">{formData.scheduledTime}</p>
-              </div>
-              <div className="col-span-2">
-                <Label className="text-sm font-medium text-gray-700">Location</Label>
-                <p className="text-gray-900">{formData.location.address}</p>
-              </div>
-              <div className="col-span-2">
-                <Label className="text-sm font-medium text-gray-700">Description</Label>
-                <p className="text-gray-900">{formData.description}</p>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-2">Service Details</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Service:</span>
+                  <span className="ml-2 font-medium">{service.name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Professional:</span>
+                  <span className="ml-2 font-medium">{professional.name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Date:</span>
+                  <span className="ml-2 font-medium">
+                    {new Date(formData.scheduledDate).toLocaleDateString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Time:</span>
+                  <span className="ml-2 font-medium">{formData.scheduledTime}</span>
+                </div>
               </div>
             </div>
-            
-            <div className="flex justify-end space-x-3">
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-2">Request Details</h4>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-gray-600">Description:</span>
+                  <p className="mt-1 text-gray-900">{formData.description}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Location:</span>
+                  <p className="mt-1 text-gray-900">{formData.location.address}</p>
+                </div>
+                {formData.attachments.length > 0 && (
+                  <div>
+                    <span className="text-gray-600">Attachments:</span>
+                    <p className="mt-1 text-gray-900">{formData.attachments.length} file(s)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-3 pt-4">
               <Button
                 variant="outline"
                 onClick={() => setShowReviewDialog(false)}
+                className="flex-1"
               >
-                Edit Details
+                Edit Booking
               </Button>
               <Button
-                onClick={handleSubmit}
+                onClick={handleConfirmBooking}
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                {isSubmitting ? "Creating..." : "Confirm & Submit"}
+                {isSubmitting ? 'Creating Booking...' : 'Confirm & Submit'}
               </Button>
             </div>
           </div>
@@ -422,47 +443,36 @@ const CreateBooking = () => {
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-            <DialogTitle className="text-center text-green-800">
-              Booking Created Successfully! 🎉
+            <DialogTitle className="flex items-center space-x-2 text-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <span>Booking Created Successfully!</span>
             </DialogTitle>
-            <DialogDescription className="text-center">
-              Your service request has been submitted and is now pending confirmation.
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 text-center">
-            <div className="p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-700">
-                <span className="font-medium">Booking ID:</span> {bookingId}
-              </p>
-              <p className="text-sm text-green-700 mt-1">
-                <span className="font-medium">Status:</span> Pending
-              </p>
+          <div className="text-center space-y-4">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <p className="text-green-800 font-medium">Your booking has been submitted!</p>
+              <p className="text-green-700 text-sm mt-1">Booking ID: {bookingId}</p>
             </div>
             
-            <p className="text-sm text-gray-600">
-              The service provider will review your request and get back to you soon. 
+            <p className="text-gray-600">
+              The professional will review your request and get back to you soon.
               You can track your booking status in your dashboard.
             </p>
             
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 pt-4">
               <Button
+                variant="outline"
                 onClick={() => navigate('/client/dashboard')}
-                className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                className="flex-1"
               >
                 Go to Dashboard
               </Button>
               <Button
-                onClick={() => navigate('/client/upcoming-bookings')}
-                variant="outline"
-                className="flex-1"
+                onClick={() => navigate('/client/services')}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                View Bookings
+                Book Another Service
               </Button>
             </div>
           </div>
