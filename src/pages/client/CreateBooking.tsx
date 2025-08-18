@@ -153,9 +153,8 @@ const CreateBooking: React.FC = () => {
 
       const result = await response.json();
       
-      // Generate a simple booking ID (in production, this would come from the backend)
-      const generatedBookingId = `BK${Date.now().toString().slice(-6)}`;
-      setBookingId(generatedBookingId);
+      // Use the actual MongoDB _id from the response
+      setBookingId(result.data._id);
       
       setShowReviewDialog(false);
       setShowSuccessDialog(true);
@@ -461,13 +460,13 @@ const CreateBooking: React.FC = () => {
             </p>
             
             <div className="flex space-x-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/client/dashboard')}
-                className="flex-1"
-              >
-                Go to Dashboard
-              </Button>
+                             <Button
+                 variant="outline"
+                 onClick={() => navigate('/client/dashboard', { state: { refreshBookings: true } })}
+                 className="flex-1"
+               >
+                 Go to Dashboard
+               </Button>
               <Button
                 onClick={() => navigate('/client/services')}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"

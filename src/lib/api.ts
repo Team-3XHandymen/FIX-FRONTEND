@@ -31,15 +31,9 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Add user ID and type headers for backend authentication
-    const userId = localStorage.getItem('user_id');
-    const userType = localStorage.getItem('user_type');
-    if (userId) {
-      config.headers['X-User-ID'] = userId;
-    }
-    if (userType) {
-      config.headers['X-User-Type'] = userType;
-    }
+    // For Clerk authentication, we need to get the user ID from the current user
+    // This will be handled by the ClerkProvider context in the components
+    // For now, we'll rely on the components to set the headers directly
     
     return config;
   },
@@ -121,6 +115,14 @@ export class BookingsAPI {
 
   static async deleteBooking(bookingId: string) {
     const response = await api.delete(`/bookings/${bookingId}`);
+    return response.data;
+  }
+
+  // Get current user's bookings (uses /my endpoint)
+  static async getMyBookings() {
+    // For Clerk authentication, we need to get the current user
+    // This method should be called from a component that has access to Clerk context
+    const response = await api.get('/bookings/my');
     return response.data;
   }
 

@@ -1,11 +1,11 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Search, MessageSquare, Loader2 } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
 import { useState, useMemo, useEffect } from "react";
 import { useUser } from '@clerk/clerk-react';
-import { useServices } from "@/hooks/use-api";
+import { useServices, useMyBookings } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
 import { ClientAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -13,16 +13,49 @@ import { isApiError } from "@/lib/utils";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const { toast } = useToast();
-  const [selectedBooking, setSelectedBooking] = useState<typeof bookings[number] | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [search, setSearch] = useState("");
-    const [clientData, setClientData] = useState<any>(null);
+  const [clientData, setClientData] = useState<any>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(true);
 
   // Fetch services from backend
   const { data: servicesResponse, isLoading, error } = useServices();
+
+  // Fetch current user's bookings
+  const { data: bookingsResponse, isLoading: isLoadingBookings, error: bookingsError, refetch: refetchBookings } = useMyBookings(user);
+
+  // Check if we need to refresh bookings (e.g., coming from booking creation)
+  useEffect(() => {
+    if (location.state?.refreshBookings && user) {
+      console.log('Refreshing bookings due to navigation state');
+      refetchBookings();
+      // Clear the navigation state to prevent infinite refreshes
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.refreshBookings, user, refetchBookings, navigate, location.pathname]);
+
+  // Debug logging
+  console.log('ClientDashboard - User state:', { 
+    user: user ? { id: user.id, username: user.username } : null,
+    isLoadingBookings,
+    bookingsError,
+    bookingsData: bookingsResponse?.data
+  });
+
+  // Debug: Log the actual booking data structure
+  if (bookingsResponse?.data) {
+    console.log('Raw booking data structure:', bookingsResponse.data.map((booking: any) => ({
+      id: booking._id,
+      serviceName: booking.serviceName,
+      serviceCategory: booking.serviceCategory,
+      providerName: booking.providerName,
+      serviceId: booking.serviceId
+    })));
+  }
 
   // Load client data from database when user logs in
   useEffect(() => {
@@ -64,6 +97,58 @@ const ClientDashboard = () => {
     );
   }, [servicesResponse]);
 
+  // Process and filter bookings
+  const processedBookings = useMemo(() => {
+    if (!bookingsResponse?.data) {
+      return [];
+    }
+
+    const bookings = bookingsResponse.data;
+    
+    // Filter out completed bookings and sort by scheduled date
+    return bookings
+      .filter((booking: any) => booking.status !== 'done')
+      .sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime())
+      .map((booking: any) => ({
+        ...booking,
+        // Format date and time for display
+        displayDate: new Date(booking.scheduledTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        displayTime: new Date(booking.scheduledTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        // Use the names stored directly in the booking
+        serviceCategory: booking.serviceName || booking.serviceCategory || 'Unknown Service',
+        providerName: booking.providerName || 'Unknown Provider',
+        bookingId: booking._id
+      }));
+  }, [bookingsResponse]);
+
+  // Categorize bookings by status
+  const categorizedBookings = useMemo(() => {
+    const categorized = {
+      upcoming: [] as any[],
+      pending: [] as any[],
+      confirmed: [] as any[],
+      cancelled: [] as any[]
+    };
+
+    processedBookings.forEach((booking: any) => {
+      switch (booking.status) {
+        case 'pending':
+          categorized.pending.push(booking);
+          break;
+        case 'confirmed':
+          categorized.upcoming.push(booking);
+          break;
+        case 'cancelled':
+          categorized.cancelled.push(booking);
+          break;
+        default:
+          break;
+      }
+    });
+
+    return categorized;
+  }, [processedBookings]);
+
   // Filter services based on search
   const filteredServices = useMemo(() => {
     const lowerSearch = search.trim().toLowerCase();
@@ -86,34 +171,6 @@ const ClientDashboard = () => {
       }));
   }, [services]);
 
-  const bookings = [{
-    id: 1,
-    service: "Plumbing Repair",
-    handyman: "Kamal Perera",
-    date: "Jan 23",
-    time: "2:00 PM",
-    status: "upcoming",
-    price: "$125.00",
-    description: "Fix leaking kitchen sink",
-  }, {
-    id: 2,
-    service: "Electrical Maintenance",
-    handyman: "Nimal Gunasinghe",
-    date: "Jan 25",
-    time: "10:00 AM",
-    status: "pending",
-    price: "$95.00",
-    description: "Check and repair faulty wiring",
-  }, {
-    id: 3,
-    service: "Painting",
-    handyman: "Sarath Kumara",
-    date: "Jan 18",
-    time: "10:30 AM",
-    status: "completed",
-    price: "$350.00",
-    description: "Paint living room walls",
-  }];
   const messages = [{
     id: 1,
     sender: "Kamal Perera (Plumber)",
@@ -134,14 +191,13 @@ const ClientDashboard = () => {
     });
   };
 
-  const handleChat = (booking: typeof bookings[number]) => {
-    navigate(`/client/chat/${booking.id}`, { state: { booking } });
+  const handleChat = (booking: any) => {
+    navigate(`/client/chat/${booking._id}`, { state: { booking } });
   };
 
-  const categorized = {
-    upcoming: bookings.filter(b => b.status === "upcoming"),
-    pending: bookings.filter(b => b.status === "pending"),
-    completed: bookings.filter(b => b.status === "completed")
+  const handleBookingClick = (booking: any) => {
+    setSelectedBooking(booking);
+    setIsPopupOpen(true);
   };
 
   // Use database username if available, fallback to Clerk data
@@ -389,76 +445,171 @@ const ClientDashboard = () => {
         
       </div>
       
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Your Bookings</h2>
-        {categorized.upcoming.length > 0 && <div className="space-y-4 mb-8">
-            {categorized.upcoming.map(booking => (
-              <div key={booking.id} 
-                className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => {
-                  setSelectedBooking(booking);
-                  setIsPopupOpen(true);
-                }}
-              >
-                <div className="flex items-center">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <div className="text-blue-500 text-xl">🛠️</div>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{booking.service}</h3>
-                    <p className="text-gray-500 text-sm">{booking.handyman} • {booking.date}, {booking.time}</p>
-                  </div>
-                </div>
+             {/* Your Bookings Section */}
+       <div className="mb-8">
+         <div className="flex items-center justify-between mb-4">
+           <h2 className="text-xl font-semibold">Your Bookings</h2>
+           <Button
+             variant="outline"
+             size="sm"
+             onClick={() => refetchBookings()}
+             disabled={isLoadingBookings}
+             className="flex items-center gap-2"
+           >
+             {isLoadingBookings ? (
+               <Loader2 className="h-4 w-4 animate-spin" />
+             ) : (
+               <Search className="h-4 w-4" />
+             )}
+             Refresh
+           </Button>
+         </div>
+        
+        {!user ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <p className="text-gray-500 mb-2">Please sign in to view your bookings</p>
+          </div>
+        ) : isLoadingBookings ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading your bookings...</span>
+            </div>
+          </div>
+        ) : bookingsError ? (
+          <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-red-600 mb-2">Failed to load bookings</p>
+            <p className="text-sm text-red-500 mb-3">{bookingsError.message}</p>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Retry
+            </Button>
+          </div>
+        ) : processedBookings.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <p className="text-gray-500 mb-2">No active bookings found</p>
+            <p className="text-sm text-gray-400">Start by booking a service from our catalog</p>
+            <Button 
+              onClick={() => navigate("/client/service-catalog")}
+              className="mt-3 bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Book a Service
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+                        {/* Confirmed/Upcoming Bookings */}
+            {categorizedBookings.confirmed.length > 0 && (
+              <div className="space-y-4 mb-6">
+                {categorizedBookings.confirmed.map(booking => (
+                  <div key={booking._id} 
+                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-green-500"
+                    onClick={() => handleBookingClick(booking)}
+                  >
+                    <div className="flex items-center">
+                      <div className="bg-green-100 p-2 rounded-full mr-4">
+                        <div className="text-green-500 text-xl">🛠️</div>
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
+                        <p className="text-gray-500 text-sm">{booking.providerName || 'Unknown Provider'} • {booking.displayDate}, {booking.displayTime}</p>
+                        <p className="text-gray-400 text-xs">{booking.location.address}</p>
+                        <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
+                      </div>
+                    </div>
                 <div className="flex items-center space-x-2">
-                  <div className={`px-2 py-1 rounded-full text-xs ${booking.status === 'upcoming' ? 'bg-yellow-100 text-yellow-700' : ''}`}>
-                    UPCOMING
+                      <div className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 font-medium">
+                        CONFIRMED
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => handleChat(booking)} className="bg-green-600 hover:bg-green-500 rounded-2xl">
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleChat(booking);
+                        }} 
+                        className="bg-green-600 hover:bg-green-500 rounded-2xl"
+                      >
                     <MessageSquare className="mr-1" size={16} /> Chat
                   </Button>
                 </div>
               </div>
             ))}
-          </div>}
-        {categorized.pending.length > 0 && <div className="space-y-4 mb-8">
-            {categorized.pending.map(booking => <div key={booking.id} className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
+              </div>
+            )}
+
+            {/* Pending Bookings */}
+            {categorizedBookings.pending.length > 0 && (
+              <div className="space-y-4 mb-6">
+                {categorizedBookings.pending.map(booking => (
+                  <div key={booking._id} 
+                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
+                    onClick={() => handleBookingClick(booking)}
+                  >
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-full mr-4">
                     <div className="text-blue-500 text-xl">🛠️</div>
                   </div>
                   <div>
-                    <h3 className="font-medium">{booking.service}</h3>
-                    <p className="text-gray-500 text-sm">{booking.handyman} • {booking.date}, {booking.time}</p>
+                        <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
+                        <p className="text-gray-500 text-sm">{booking.providerName || 'Unknown Provider'} • {booking.displayDate}, {booking.displayTime}</p>
+                        <p className="text-gray-400 text-xs">{booking.location.address}</p>
+                        <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-600">
+                      <div className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">
                     PENDING
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => handleChat(booking)} className="bg-green-600 hover:bg-green-500 rounded-2xl">
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleChat(booking);
+                        }} 
+                        className="bg-green-600 hover:bg-green-500 rounded-2xl"
+                      >
                     <MessageSquare className="mr-1" size={16} /> Chat
                   </Button>
                 </div>
-              </div>)}
-          </div>}
-        {categorized.completed.length > 0 && <div className="space-y-4">
-            {categorized.completed.map(booking => <div key={booking.id} className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Cancelled Bookings */}
+            {categorizedBookings.cancelled.length > 0 && (
+              <div className="space-y-4">
+                {categorizedBookings.cancelled.map(booking => (
+                  <div key={booking._id} 
+                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-red-500 opacity-75"
+                    onClick={() => handleBookingClick(booking)}
+                  >
                 <div className="flex items-center">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <div className="text-blue-500 text-xl">🛠️</div>
+                      <div className="bg-red-100 p-2 rounded-full mr-4">
+                        <div className="text-red-500 text-xl">🛠️</div>
                   </div>
                   <div>
-                    <h3 className="font-medium">{booking.service}</h3>
-                    <p className="text-gray-500 text-sm">{booking.handyman} • {booking.date}, {booking.time}</p>
+                        <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
+                        <p className="text-gray-500 text-sm">{booking.providerName || 'Unknown Provider'} • {booking.displayDate}, {booking.displayTime}</p>
+                        <p className="text-gray-400 text-xs">{booking.location.address}</p>
+                        <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
-                  <div className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                    COMPLETED
+                      <div className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 font-medium">
+                        CANCELLED
+                      </div>
                   </div>
                 </div>
-              </div>)}
-          </div>}
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       <div>
