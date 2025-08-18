@@ -68,6 +68,52 @@ export const useBooking = (bookingId: string) => {
   });
 };
 
+// Get current user's bookings (for authenticated users)
+export const useMyBookings = (user: any) => {
+  return useQuery({
+    queryKey: ['bookings', 'my', user?.id],
+    queryFn: async () => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      console.log('Fetching bookings for user:', user.id);
+      
+      try {
+        // Create a custom API call with proper headers
+        const response = await fetch('/api/bookings/my', {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': user.id,
+            'X-User-Type': 'client'
+          }
+        });
+        
+        console.log('API Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', errorText);
+          throw new Error(`Failed to fetch bookings: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Bookings data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in useMyBookings:', error);
+        throw error;
+      }
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: (failureCount, error) => {
+      console.log(`Retrying fetch bookings (attempt ${failureCount + 1}):`, error);
+      return failureCount < 3;
+    },
+  });
+};
+
 export const useClientBookings = (clientId: string) => {
   return useQuery({
     queryKey: ['bookings', 'client', clientId],
