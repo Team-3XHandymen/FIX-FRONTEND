@@ -104,7 +104,7 @@ const ClientDashboardLayout = ({ children, title, subtitle, showHomeIcon = true,
                   className="border-blue-600 text-blue-600 hover:bg-blue-50 py-2 mr-2"
                   onClick={() => navigate("/handyman/dashboard")}
                 >
-                  Handyman Dashboard
+                  Service Dashboard
                 </Button>
               )}
               <DropdownMenu>

@@ -2,9 +2,13 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Wrench } from "lucide-react";
-import { SignUpButton, SignedOut, SignedIn, UserButton, SignInButton } from '@clerk/clerk-react';
+import { SignUpButton, SignedOut, SignedIn, UserButton, SignInButton, useUser } from '@clerk/clerk-react';
 
-const Navbar = () => {
+interface NavbarProps {
+  showHandymanDashboard?: boolean;
+}
+
+const Navbar = ({ showHandymanDashboard = false }: NavbarProps) => {
   return (
     <nav className="bg-[#14B22D] shadow-md">
       <div className="container mx-auto px-4 py-3">
@@ -55,6 +59,13 @@ const Navbar = () => {
                   Dashboard
                 </Button>
               </Link>
+              {showHandymanDashboard && (
+                <Link to="/handyman/dashboard">
+                  <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                    Service Dashboard
+                  </Button>
+                </Link>
+              )}
               <UserButton />
             </SignedIn>
           </div>
