@@ -15,6 +15,7 @@ const Index = () => {
   const { user, isLoaded } = useUser();
   const { toast } = useToast();
   const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [isHandyman, setIsHandyman] = useState(false);
   const processedUsersRef = useRef<Set<string>>(new Set());
 
   // Create client record for new users when they land on homepage
@@ -55,9 +56,29 @@ const Index = () => {
     createClientIfNeeded();
   }, [user, isLoaded, isCreatingClient, toast]);
 
+  // Check if user is registered as handyman
+  useEffect(() => {
+    const checkHandymanStatus = () => {
+      if (!user || !isLoaded) return;
+
+      // Add a small delay to ensure metadata is loaded
+      setTimeout(() => {
+        try {
+          const hasHandymanProfile = ClientAPI.isUserHandyman(user);
+          setIsHandyman(hasHandymanProfile);
+        } catch (error) {
+          console.error('Failed to check handyman status:', error);
+          setIsHandyman(false);
+        }
+      }, 1000); // Wait 1 second for metadata to load
+    };
+
+    checkHandymanStatus();
+  }, [user, isLoaded]);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <Navbar showHandymanDashboard={isHandyman} />
       <main className="flex-grow">
         <Hero />
         <Values />

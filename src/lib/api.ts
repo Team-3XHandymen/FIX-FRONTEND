@@ -263,6 +263,11 @@ export class HandymanAPI {
     const response = await api.get(`/handyman/service/${serviceId}`);
     return response.data;
   }
+
+  static async getAvailableServices() {
+    const response = await api.get('/handyman/services');
+    return response.data;
+  }
 }
 
 export class ClientAPI {
@@ -284,6 +289,24 @@ export class ClientAPI {
   static async getAllClients() {
     const response = await api.get('/clients');
     return response.data;
+  }
+
+  // Check if user is registered as handyman using Clerk metadata
+  static isUserHandyman(user: any) {
+    try {
+      // Try different ways to access metadata
+      const publicMetadata = user?.publicMetadata;
+      const unsafeMetadata = user?.unsafeMetadata;
+      
+      // Check if user has handyman metadata - try both locations
+      const userType = publicMetadata?.userType || unsafeMetadata?.userType;
+      const isHandyman = publicMetadata?.isHandyman || unsafeMetadata?.isHandyman;
+      
+      return userType === 'handyman' && isHandyman === true;
+    } catch (error) {
+      // If check fails, user is not a handyman
+      return false;
+    }
   }
 }
 

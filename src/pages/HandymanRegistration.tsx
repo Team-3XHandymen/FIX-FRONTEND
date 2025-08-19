@@ -4,24 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from '@clerk/clerk-react';
-import { HandymanAPI, ServicesAPI } from "@/lib/api";
+import { HandymanAPI } from "@/lib/api";
 
 const REG_STEPS = [
   "Personal Information",
   "Profile Photo",
   "Skillset & Services",
   "Professional Details",
-];
-
-const defaultServices = [
-  { label: "Electrical Repairs (Switchboards, lights, fans, etc.)", name: "electrical" },
-  { label: "Plumbing (Leaks, pipe fittings, bathroom fixtures)", name: "plumbing" },
-  { label: "Furniture Assembly / Repairs", name: "furniture" },
-  { label: "Painting (Interior / Exterior)", name: "painting" },
-  { label: "Door / Lock Repairs", name: "doorlock" },
-  { label: "Wall Mounting (TVs, shelves, etc.)", name: "wallmount" },
-  { label: "Small Renovations", name: "renovations" },
-  { label: "Other (please specify):", name: "other" },
 ];
 
 const certifications = [
@@ -151,88 +140,99 @@ const Step2 = ({
 }) => (
   <div>
     <div className="flex items-center text-2xl font-semibold text-gray-700 mb-6">
-      <img
-        src="public/lovable-uploads/33c797a6-0bdd-402d-98b5-ec482072124f.png"
-        alt="Profile"
-        className="mr-2 w-6 h-6"
-      />
+      <svg width="26" height="26" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 16v6m0 0v2m0-2h2m-2 0H8m8-2v-2a4 4 0 00-8 0v2"/>
+        <circle cx="12" cy="7" r="4"/>
+        <rect width="24" height="24"/>
+      </svg>
       <span>Profile Photo</span>
     </div>
     <div className="border-2 border-dashed border-gray-300 rounded-lg flex flex-col justify-center items-center py-12 mb-4">
-      <label htmlFor="profile-upload" className="flex flex-col items-center cursor-pointer w-full">
-        <div className="rounded-full bg-gray-100 h-16 w-16 flex justify-center items-center mb-2">
-          <svg className="text-gray-400" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 16v6m0 0v2m0-2h2m-2 0H8m8-2v-2a4 4 0 00-8 0v2"/><circle cx="12" cy="7" r="4"/><rect width="24" height="24"/></svg>
-        </div>
-        {!photo ? (
-          <>
-            <span className="text-gray-500 mb-1">Upload a clear, professional-looking photo</span>
-            <button
-              type="button"
-              className="mt-2 bg-green-500 text-white font-medium px-6 py-2 rounded focus:outline-none transition"
-            >
-              Choose Photo
-            </button>
-            <input
-              id="profile-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={onPhoto}
-            />
-          </>
-        ) : (
-          <div className="flex flex-col items-center">
-            <img
-              src={URL.createObjectURL(photo)}
-              alt="Profile preview"
-              className="h-28 w-28 object-cover rounded-full border mb-3"
-            />
-            <span className="text-green-700">Photo selected</span>
+      {!photo ? (
+        <div className="flex flex-col items-center">
+          <div className="rounded-full bg-gray-100 h-16 w-16 flex justify-center items-center mb-4">
+            <svg className="text-gray-400" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M16 16v6m0 0v2m0-2h2m-2 0H8m8-2v-2a4 4 0 00-8 0v2"/>
+              <circle cx="12" cy="7" r="4"/>
+              <rect width="24" height="24"/>
+            </svg>
           </div>
-        )}
-      </label>
+          <span className="text-gray-500 mb-3 text-center">Upload a clear, professional-looking photo</span>
+          <span className="text-sm text-gray-400 mb-4 text-center">This will be displayed to potential clients</span>
+          <label htmlFor="profile-upload" className="cursor-pointer">
+            <span className="bg-green-500 text-white font-medium px-6 py-3 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors inline-block">
+              Choose Photo
+            </span>
+          </label>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <img
+            src={URL.createObjectURL(photo)}
+            alt="Profile preview"
+            className="h-28 w-28 object-cover rounded-full border-4 border-green-200 mb-4"
+          />
+          <span className="text-green-700 font-medium">Photo selected successfully!</span>
+          <span className="text-sm text-gray-500 mt-1 mb-3">Click to change photo</span>
+          <label htmlFor="profile-upload" className="cursor-pointer">
+            <span className="bg-gray-500 text-white font-medium px-4 py-2 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors inline-block text-sm">
+              Change Photo
+            </span>
+          </label>
+        </div>
+      )}
+      <input
+        id="profile-upload"
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onPhoto}
+      />
     </div>
   </div>
 );
 
 const Step3 = ({
-  services, otherService, onServiceChange, onOtherChange,
+  services,
+  otherService,
+  onServiceChange,
+  onOtherChange,
+  availableServices
 }: {
   services: string[];
   otherService: string;
   onServiceChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onOtherChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  availableServices: any[];
 }) => (
   <div>
     <div className="text-2xl font-semibold text-gray-700 mb-6">
       Skillset & Services Offered
     </div>
-    <div className="mb-2 text-gray-600">Tick all that apply</div>
-    <div className="space-y-3">
-      {defaultServices.map((svc, idx) => (
-        <div key={svc.name} className="flex items-center">
-          <input
-            id={`skill-${svc.name}`}
-            type="checkbox"
-            name={svc.name}
-            checked={services.includes(svc.name)}
-            onChange={onServiceChange}
-            className="h-5 w-5 border-gray-400 mr-2"
-          />
-          <label htmlFor={`skill-${svc.name}`} className="text-base">
-            {svc.label}
-          </label>
-          {svc.name === "other" && services.includes("other") && (
+    <div className="mb-4 text-gray-600">Select all services you can provide</div>
+    <div className="grid grid-cols-1 gap-3">
+      {availableServices.length > 0 ? (
+        availableServices.map((service) => (
+          <div key={service._id} className="flex items-center p-3 border border-gray-200 rounded-lg hover:border-green-300 transition-colors">
             <input
-              className="ml-3 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-              type="text"
-              value={otherService}
-              placeholder="Please specify"
-              onChange={onOtherChange}
+              id={`skill-${service._id}`}
+              type="checkbox"
+              name={service._id}
+              checked={services.includes(service._id)}
+              onChange={onServiceChange}
+              className="h-5 w-5 border-gray-400 text-green-600 focus:ring-green-500 rounded"
             />
-          )}
+            <label htmlFor={`skill-${service._id}`} className="ml-3 text-base font-medium text-gray-700 cursor-pointer">
+              {service.name}
+            </label>
+          </div>
+        ))
+      ) : (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-3"></div>
+          <p className="text-gray-500">Loading available services...</p>
         </div>
-      ))}
+      )}
     </div>
   </div>
 );
@@ -246,7 +246,7 @@ const Step4 = ({
   onInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   certs: string[];
   onCertChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  days: string;
+  days: string[];
   hours: string;
   onDaysChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onHoursChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -255,122 +255,148 @@ const Step4 = ({
   otherPay: string;
   onOtherPayChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) => (
-  <div className="space-y-5">
-    <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
-      <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-1M9 8h6M9 11h6"/></svg>
-      <span>Years of Experience</span>
-    </div>
-    <input
-      name="experience"
-      value={data.experience}
-      onChange={onInputChange}
-      type="number"
-      min={0}
-      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-      placeholder="e.g., 5 years"
-    />
-    <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
-      <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M3 7V5a2 2 0 012-2h3.5"/></svg>
-      <span>Certifications / Training</span>
-    </div>
-    <div className="space-y-2 mb-4">
-      {certifications.map(cert => (
-        <div key={cert.name} className="flex items-center">
-          <input
-            type="checkbox"
-            id={`cert-${cert.name}`}
-            name={cert.name}
-            checked={certs.includes(cert.name)}
-            onChange={onCertChange}
-            className="h-5 w-5 border-gray-400 mr-2"
-          />
-          <label htmlFor={`cert-${cert.name}`} className="text-base">{cert.label}</label>
-        </div>
-      ))}
-    </div>
-    <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
-      <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M8 11V8h8v8"/></svg>
-      <span>Availability</span>
-    </div>
-    <label className="block mb-1 text-gray-700">Working Days:</label>
-    <input
-      name="workDays"
-      value={days}
-      onChange={onDaysChange}
-      className="w-full mb-2 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-      placeholder="e.g., Monday to Friday"
-    />
-    <label className="block mb-1 text-gray-700">Working Hours:</label>
-    <input
-      name="workHours"
-      value={hours}
-      onChange={onHoursChange}
-      className="w-full mb-2 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-      placeholder="e.g., 9 AM to 5 PM"
-    />
-    <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
-      <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span>Address / Location</span>
-    </div>
+  <div className="space-y-6">
+    {/* Experience Section */}
     <div className="space-y-3">
-      <input
-        name="street"
-        value={data.street}
-        onChange={onInputChange}
-        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        placeholder="Street Address"
-      />
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          name="city"
-          value={data.city}
-          onChange={onInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="City"
-        />
-        <input
-          name="state"
-          value={data.state}
-          onChange={onInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="State/Province"
-        />
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
+        <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-1M9 8h6M9 11h6"/></svg>
+        <span>Years of Experience</span>
       </div>
       <input
-        name="zipCode"
-        value={data.zipCode}
+        name="experience"
+        value={data.experience}
         onChange={onInputChange}
-        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        placeholder="ZIP/Postal Code"
+        type="number"
+        min={0}
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+        placeholder="e.g., 5 years"
       />
     </div>
-    <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mt-4">
-      <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 6v-2h8v2"/></svg>
-      <span>Preferred Payment Method</span>
-    </div>
-    <div className="space-y-2 mb-4">
-      {paymentMethods.map(method => (
-        <div key={method.name} className="flex items-center">
-          <input
-            type="checkbox"
-            id={`pay-${method.name}`}
-            name={method.name}
-            checked={pay.includes(method.name)}
-            onChange={onPayChange}
-            className="h-5 w-5 border-gray-400 mr-2"
-          />
-          <label htmlFor={`pay-${method.name}`} className="text-base">{method.label}</label>
-          {method.name === "other" && pay.includes("other") && (
+
+    {/* Certifications Section */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
+        <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M3 7V5a2 2 0 012-2h3.5"/></svg>
+        <span>Certifications / Training</span>
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        {certifications.map(cert => (
+          <div key={cert.name} className="flex items-center p-3 border border-gray-200 rounded-lg hover:border-green-300 transition-colors">
             <input
-              className="ml-3 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-              type="text"
-              value={otherPay}
-              placeholder="Please specify"
-              onChange={onOtherPayChange}
+              type="checkbox"
+              id={`cert-${cert.name}`}
+              name={cert.name}
+              checked={certs.includes(cert.name)}
+              onChange={onCertChange}
+              className="h-5 w-5 border-gray-400 text-green-600 focus:ring-green-500 rounded"
             />
-          )}
+            <label htmlFor={`cert-${cert.name}`} className="ml-3 text-base font-medium text-gray-700 cursor-pointer">{cert.label}</label>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Availability Section */}
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
+        <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 6v-2h8v2"/></svg>
+        <span>Working Schedule</span>
+      </div>
+      
+      {/* Working Days */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">Working Days</label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+            <div key={day} className="flex items-center p-3 border border-gray-200 rounded-lg hover:border-green-300 transition-colors">
+              <input
+                type="checkbox"
+                id={`day-${day.toLowerCase()}`}
+                name="workDays"
+                value={day}
+                checked={days.includes(day)}
+                onChange={onDaysChange}
+                className="h-4 w-4 border-gray-400 text-green-600 focus:ring-green-500 rounded"
+              />
+              <label htmlFor={`day-${day.toLowerCase()}`} className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">{day}</label>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+
+      {/* Working Hours */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">Working Hours</label>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Start Time</label>
+            <input
+              type="time"
+              name="workHoursStart"
+              value={hours.split('-')[0] || ''}
+              onChange={onHoursChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">End Time</label>
+            <input
+              type="time"
+              name="workHoursEnd"
+              value={hours.split('-')[1] || ''}
+              onChange={onHoursChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Location Section */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
+        <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>Location</span>
+      </div>
+      <input
+        name="location"
+        value={data.location || ''}
+        onChange={onInputChange}
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+        placeholder="e.g., Colombo, Sri Lanka"
+      />
+    </div>
+
+    {/* Payment Methods Section */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
+        <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 6v-2h8v2"/></svg>
+        <span>Preferred Payment Methods</span>
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        {paymentMethods.map(method => (
+          <div key={method.name} className="flex items-center p-3 border border-gray-200 rounded-lg hover:border-green-300 transition-colors">
+            <input
+              type="checkbox"
+              id={`pay-${method.name}`}
+              name={method.name}
+              checked={pay.includes(method.name)}
+              onChange={onPayChange}
+              className="h-5 w-5 border-gray-400 text-green-600 focus:ring-green-500 rounded"
+            />
+            <label htmlFor={`pay-${method.name}`} className="ml-3 text-base font-medium text-gray-700 cursor-pointer">{method.label}</label>
+            {method.name === "other" && pay.includes("other") && (
+              <input
+                className="ml-3 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                type="text"
+                value={otherPay}
+                placeholder="Please specify"
+                onChange={onOtherPayChange}
+              />
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 );
@@ -381,10 +407,7 @@ const initialForm = {
   contactNumber: "",
   emailAddress: "",
   experience: "",
-  street: "",
-  city: "",
-  state: "",
-  zipCode: "",
+  location: "",
 };
 
 const HandymanRegistration = () => {
@@ -394,8 +417,8 @@ const HandymanRegistration = () => {
   const [services, setServices] = useState<string[]>([]);
   const [otherService, setOtherService] = useState("");
   const [certs, setCerts] = useState<string[]>([]);
-  const [days, setDays] = useState("");
-  const [hours, setHours] = useState("");
+  const [days, setDays] = useState<string[]>([]);
+  const [hours, setHours] = useState<string>("");
   const [pay, setPay] = useState<string[]>([]);
   const [otherPay, setOtherPay] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -408,7 +431,7 @@ const HandymanRegistration = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await ServicesAPI.getAllServices();
+        const response = await HandymanAPI.getAvailableServices();
         if (response.success) {
           setAvailableServices(response.data);
         }
@@ -429,8 +452,13 @@ const HandymanRegistration = () => {
 
   const handleServiceChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    if (checked) setServices([...services, name]);
-    else setServices(services.filter(s => s !== name));
+    
+    if (checked) {
+      setServices([...services, name]);
+    } else {
+      const filteredServices = services.filter(s => s !== name);
+      setServices(filteredServices);
+    }
   };
 
   const handleOtherServiceChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -443,8 +471,25 @@ const HandymanRegistration = () => {
     else setCerts(certs.filter((c) => c !== name));
   };
 
-  const handleDaysChange = (e: ChangeEvent<HTMLInputElement>) => setDays(e.target.value);
-  const handleHoursChange = (e: ChangeEvent<HTMLInputElement>) => setHours(e.target.value);
+  const handleDaysChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (days.includes(value)) {
+      setDays(days.filter(day => day !== value));
+    } else {
+      setDays([...days, value]);
+    }
+  };
+
+  const handleHoursChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const name = e.target.name;
+    
+    if (name === 'workHoursStart') {
+      setHours(`${value}-${hours.split('-')[1] || ''}`);
+    } else if (name === 'workHoursEnd') {
+      setHours(`${hours.split('-')[0] || ''}-${value}`);
+    }
+  };
 
   const handlePayChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
@@ -456,7 +501,6 @@ const HandymanRegistration = () => {
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.preventDefault(); // Prevent any form submission
-    console.log('handleNext called for step:', step); // Debug log
     // Validate current step before proceeding
     if (step === 0) {
       if (!personal.name || !personal.nic || !personal.contactNumber || !personal.emailAddress) {
@@ -474,7 +518,6 @@ const HandymanRegistration = () => {
         return;
       }
     }
-    console.log('Moving to next step:', step + 1); // Debug log
     setStep((s) => s + 1);
   };
   
@@ -484,12 +527,10 @@ const HandymanRegistration = () => {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    console.log('handleSubmit called - this should only happen on final submission'); // Debug log
     e.preventDefault();
     
     // Only allow submission on the final step
     if (step !== 3) {
-      console.log('Form submission blocked - not on final step. Current step:', step);
       return;
     }
     
@@ -509,9 +550,9 @@ const HandymanRegistration = () => {
       return;
     }
     
-    // Validate address fields (only city and state are required)
-    if (!personal.city || !personal.state) {
-      alert("Please provide at least city and state for your address");
+    // Validate address fields (only location is required now)
+    if (!personal.location || personal.location.trim() === '') {
+      alert("Please provide your location");
       return;
     }
     
@@ -524,16 +565,16 @@ const HandymanRegistration = () => {
     // Set default working days and hours if not provided (matching backend behavior)
     let workingDays = days;
     let workingHours = hours;
-    if (!workingDays || workingDays.trim() === '') {
-      workingDays = 'Monday, Tuesday, Wednesday, Thursday, Friday';
+    if (!workingDays || workingDays.length === 0) {
+      workingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     }
     if (!workingHours || workingHours.trim() === '') {
       workingHours = '9:00 AM - 5:00 PM';
     }
     
-    // Convert strings to arrays as expected by backend
-    const workingDaysArray = workingDays.split(',').map(day => day.trim());
-    const workingHoursArray = workingHours.split(',').map(hour => hour.trim());
+    // Convert arrays to strings as expected by backend
+    const workingDaysString = workingDays.join(', ');
+    const workingHoursArray = workingHours.split('-').map(hour => hour.trim());
     
     if (pay.length === 0) {
       alert("Please select at least one payment method");
@@ -557,25 +598,18 @@ const HandymanRegistration = () => {
         contactNumber: personal.contactNumber,
         emailAddress: personal.emailAddress,
         personalPhoto: photoBase64,
-        skills: services.filter(s => s !== 'other'), // Filter out 'other' service
         experience: parseInt(personal.experience) || 0,
         certifications: certs,
-        services: services.filter(s => s !== 'other'), // Filter out 'other' service
-        address: {
-          street: personal.street || '',
-          city: personal.city,
-          state: personal.state,
-          zipCode: personal.zipCode || '',
-        },
+        services: services, // Only service IDs, no skills array
+        location: personal.location || '', // Add location field
         availability: {
-          workingDays: workingDaysArray.filter(day => day.trim() !== '').join(', '),
+          workingDays: workingDaysString,
           workingHours: workingHoursArray.filter(hour => hour.trim() !== '').join(', '),
         },
         paymentMethod: pay.filter(p => p !== 'other').join(', '),
       };
 
       // Register handyman with backend
-      console.log('Sending handyman data:', handymanData); // Debug log
       const response = await HandymanAPI.registerHandyman(handymanData);
       
       if (response.success) {
@@ -584,6 +618,7 @@ const HandymanRegistration = () => {
           await user.update({ 
             unsafeMetadata: { 
               ...user.unsafeMetadata, 
+              userType: 'handyman',
               isHandyman: true,
               handymanId: response.data.handymanId,
             }
@@ -663,6 +698,7 @@ const HandymanRegistration = () => {
               otherService={otherService}
               onServiceChange={handleServiceChange}
               onOtherChange={handleOtherServiceChange}
+              availableServices={availableServices}
             />
           )}
 
@@ -704,7 +740,7 @@ const HandymanRegistration = () => {
               type="button"
               onClick={handleNext}
               onMouseDown={(e) => e.preventDefault()}
-              className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-gray-200 transition"
+              className="inline-flex items-center gap-2 px-7 py-2 rounded bg-green-500 text-white font-medium shadow hover:bg-green-600 transition"
             >
               Next <ArrowRight className="h-4 w-4" />
             </button>
@@ -717,7 +753,7 @@ const HandymanRegistration = () => {
             >
               {isSubmitting ? "Submitting..." : "Submit"}
             </button>
-            )}
+          )}
         </div>
       </div>
     </div>
