@@ -226,9 +226,9 @@ const ClientSignUp = () => {
           <div className="text-center mt-4">
             <p className="text-sm">
               Already have an account?{" "}
-              <Link to="/login/client" className="text-green-600 hover:underline">
-                Log in as client
-              </Link>
+              <span className="text-gray-500">
+                Please use the sign-in options on the homepage
+              </span>
             </p>
           </div>
         </div>

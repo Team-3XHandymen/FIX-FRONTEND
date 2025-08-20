@@ -1,5 +1,6 @@
 import React, { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   Bell,
   LogOut,
@@ -20,12 +21,6 @@ interface Props {
   homeButtonHandler?: () => void;
 }
 
-const user = {
-  name: "John Doe",
-  specialty: "Plumbing Specialist",
-  avatar: "https://randomuser.me/api/portraits/men/34.jpg",
-};
-
 const menuItems = [
   { label: "Dashboard", route: "/handyman/dashboard" },
   { label: "Schedule", route: "/handyman/schedule" },
@@ -45,9 +40,19 @@ const HandymanDashboardLayout = ({
 }: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const isOnDashboard = location.pathname === "/handyman/dashboard";
 
   const handleHomeClick = homeButtonHandler || (() => navigate("/handyman/dashboard"));
+
+  // Get user's first name from Clerk
+  const firstName = user?.firstName || user?.username || 'there';
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen flex w-full bg-[#f5faf7]">
@@ -85,7 +90,7 @@ const HandymanDashboardLayout = ({
                   aria-label="Profile"
                 >
                   <img
-                    src={user.avatar}
+                    src={user?.imageUrl || "https://randomuser.me/api/portraits/men/34.jpg"}
                     alt="Handyman avatar"
                     className="h-8 w-8 rounded-full object-cover"
                   />
@@ -103,10 +108,7 @@ const HandymanDashboardLayout = ({
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuItem
-                  onClick={() => {
-                    localStorage.removeItem("fixfinder_user");
-                    navigate("/");
-                  }}
+                  onClick={handleLogout}
                   className="text-red-500"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
@@ -116,6 +118,19 @@ const HandymanDashboardLayout = ({
             </DropdownMenu>
           </div>
         </div>
+        
+        {/* Welcome Hero Section */}
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-10 py-8">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl font-bold mb-2">
+              Welcome, {firstName}! 👋
+            </h1>
+            <p className="text-green-100 text-lg">
+              Ready to tackle today's jobs? Check your client requests and manage your schedule.
+            </p>
+          </div>
+        </div>
+        
         <div className="px-10 pt-8 pb-2">
           {title && <h1 className="text-2xl font-bold text-green-900">{title}</h1>}
           {subtitle && <p className="text-gray-700">{subtitle}</p>}
