@@ -1,6 +1,5 @@
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import HandymanDashboardLayout from "@/components/handyman/HandymanDashboardLayout";
 import {
   Tabs,
@@ -14,14 +13,7 @@ import TodaySchedule from "@/components/handyman/dashboard/TodaySchedule";
 import RecentJobs from "@/components/handyman/dashboard/RecentJobs";
 
 const HandymanDashboard = () => {
-  const navigate = useNavigate();
   const [tab, setTab] = useState<"requests" | "today">("requests");
-
-  useEffect(() => {
-    if (!localStorage.getItem("fixfinder_handyman_registered")) {
-      navigate("/handyman/registration");
-    }
-  }, [navigate]);
 
   return (
     <HandymanDashboardLayout title="Dashboard">

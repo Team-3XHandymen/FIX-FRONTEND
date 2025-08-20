@@ -9,26 +9,48 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+interface Booking {
+  _id: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'done';
+  description: string;
+  fee: number | null;
+  location: {
+    address: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  clientId: string;
+  clientName: string; // Added client name field
+  providerId: string;
+  serviceId: string;
+  providerName: string;
+  serviceName: string;
+  scheduledTime: string;
+  createdAt: string;
+}
+
 interface RequestDetailsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  request: {
-    id: string;
-    title: string;
-    client: string;
-    address: string;
-    time: string;
-    note: string;
-  };
+  request: Booking;
 }
 
 const RequestDetailsDialog = ({ open, onOpenChange, request }: RequestDetailsProps) => {
   const navigate = useNavigate();
 
-  const photos = [
-    "/lovable-uploads/dee4bc78-008e-48fe-9a6d-0a851f0e0b58.png",
-    "/lovable-uploads/f1ac4051-e1a6-4dde-a3f7-f065c2486f55.png",
-  ];
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -38,41 +60,60 @@ const RequestDetailsDialog = ({ open, onOpenChange, request }: RequestDetailsPro
         </DialogHeader>
         <div className="space-y-6">
           <div>
-            <h3 className="font-semibold text-2xl">{request.title}</h3>
-            <p className="text-sm text-gray-500">Request ID: {request.id}</p>
+            <h3 className="font-semibold text-2xl">{request.serviceName}</h3>
+            <p className="text-sm text-gray-500">Request ID: {request._id}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
+                <label className="text-sm font-medium text-gray-500">Service Category</label>
+                <p className="text-gray-900 text-lg">{request.serviceName}</p>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-gray-500">Client</label>
-                <p className="text-gray-900 text-lg">{request.client}</p>
+                <p className="text-gray-900 text-lg">{request.clientName}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Location</label>
-                <p className="text-gray-900 text-lg">{request.address}</p>
+                <p className="text-gray-900 text-lg">{request.location.address}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Preferred Time</label>
-                <p className="text-gray-900 text-lg">{request.time}</p>
+                <label className="text-sm font-medium text-gray-500">Scheduled Time</label>
+                <p className="text-gray-900 text-lg">{formatDateTime(request.scheduledTime)}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Additional Notes</label>
-                <p className="text-gray-900 text-lg whitespace-pre-wrap">{request.note}</p>
+                <label className="text-sm font-medium text-gray-500">Requested At</label>
+                <p className="text-gray-900 text-lg">{formatDateTime(request.createdAt)}</p>
               </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Description</label>
+                <p className="text-gray-900 text-lg whitespace-pre-wrap">{request.description}</p>
+              </div>
+              {request.fee && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Service Fee</label>
+                  <p className="text-gray-900 text-lg font-semibold text-green-600">${request.fee}</p>
+                </div>
+              )}
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500 block mb-3">Uploaded Photos</label>
-              <div className="grid grid-cols-2 gap-4">
-                {photos.map((photo, index) => (
-                  <img
-                    key={index}
-                    src={photo}
-                    alt={`Request photo ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg shadow-sm"
-                  />
-                ))}
+              <label className="text-sm font-medium text-gray-500 block mb-3">Service Information</label>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Service Details</h4>
+                  <p className="text-gray-600">{request.description}</p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Location Details</h4>
+                  <p className="text-blue-800">{request.location.address}</p>
+                  {request.location.coordinates && (
+                    <p className="text-blue-600 text-sm mt-1">
+                      Coordinates: {request.location.coordinates.lat}, {request.location.coordinates.lng}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -88,7 +129,7 @@ const RequestDetailsDialog = ({ open, onOpenChange, request }: RequestDetailsPro
             <Button
               variant="outline"
               className="flex-1 gap-2"
-              onClick={() => navigate(`/handyman/chat/${request.id}`)}
+              onClick={() => navigate(`/handyman/chat/${request._id}`)}
             >
               <MessageSquare className="h-4 w-4" />
               Chat with Client

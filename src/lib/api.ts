@@ -25,16 +25,8 @@ console.log('API Configuration:', {
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or Clerk
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // For Clerk authentication, we need to get the user ID from the current user
-    // This will be handled by the ClerkProvider context in the components
-    // For now, we'll rely on the components to set the headers directly
-    
+    // For Clerk authentication, we don't need to manually add tokens
+    // Clerk handles authentication automatically
     return config;
   },
   (error) => {
@@ -50,9 +42,9 @@ api.interceptors.response.use(
   (error) => {
     // Handle common errors
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login/client';
+      // Unauthorized - don't redirect automatically for handyman users
+      // Let the components handle authentication as needed
+      console.error('Unauthorized request - authentication required');
     } else if (error.response?.status === 403) {
       // Forbidden
       console.error('Access forbidden');
@@ -266,6 +258,30 @@ export class HandymanAPI {
 
   static async getAvailableServices() {
     const response = await api.get('/handyman/services');
+    return response.data;
+  }
+
+  // Get service provider profile by Clerk userId
+  static async getServiceProviderByUserId(userId: string) {
+    const response = await api.get(`/handyman/profile/${userId}`);
+    return response.data;
+  }
+
+  // Get bookings assigned to a specific service provider
+  static async getProviderBookings(providerId: string) {
+    const response = await api.get(`/bookings/provider/${providerId}`);
+    return response.data;
+  }
+
+  // Get bookings for a service provider using their Clerk userId
+  static async getProviderBookingsByClerkUserId(clerkUserId: string) {
+    const response = await api.get(`/bookings/provider-clerk/${clerkUserId}`);
+    return response.data;
+  }
+
+  // Get bookings for a service provider using their database ID directly
+  static async getProviderBookingsByDatabaseId(providerDatabaseId: string) {
+    const response = await api.get(`/bookings/provider-db/${providerDatabaseId}`);
     return response.data;
   }
 }
