@@ -75,3 +75,9 @@ Changes made:
     *Added the service dashboard button to the homepage for easy access, it checks the clerk unsafemetadata to identify the user as a handyman and make this button visible only to the serviceproviders.
     *Deleted few service arrays that didnt make sense.
 Notes: Can start with handyman part of booking process.
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 20/8/25
+Commit msg: "Loading bookings under the serviceprovider"
+Changes made: 
+    *Was not successful
