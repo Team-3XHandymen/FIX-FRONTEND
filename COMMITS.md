@@ -84,3 +84,4 @@ Changes made:
     *Added Logics to grab the serviceprovider userid and filter the bookings under that id to be visible on the service dashboard under client requests. 
     *Shows the service category, client name, description , date time scheduled and requested, and location
 Notes: Adding the logic to change the booking status on serviceprovider's decision to accept or reject.
+
