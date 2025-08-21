@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import HandymanDashboardLayout from "@/components/handyman/HandymanDashboardLayout";
 import {
   Tabs,
@@ -14,6 +14,12 @@ import RecentJobs from "@/components/handyman/dashboard/RecentJobs";
 
 const HandymanDashboard = () => {
   const [tab, setTab] = useState<"requests" | "today">("requests");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Callback to refresh all components when booking status changes
+  const handleBookingStatusChange = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   return (
     <HandymanDashboardLayout title="Dashboard">
@@ -29,14 +35,14 @@ const HandymanDashboard = () => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="requests">
-          <ClientRequests />
+          <ClientRequests onStatusChange={handleBookingStatusChange} />
         </TabsContent>
         <TabsContent value="today">
           <TodaySchedule />
         </TabsContent>
       </Tabs>
       
-      <RecentJobs />
+      <RecentJobs key={refreshKey} />
     </HandymanDashboardLayout>
   );
 };

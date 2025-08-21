@@ -6,8 +6,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageSquare } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { BookingsAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useUser } from '@clerk/clerk-react';
 
 interface Booking {
   _id: string;
@@ -35,10 +41,16 @@ interface RequestDetailsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: Booking;
+  onStatusChange?: () => void; // Callback to refresh the parent component
 }
 
-const RequestDetailsDialog = ({ open, onOpenChange, request }: RequestDetailsProps) => {
+const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: RequestDetailsProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [fee, setFee] = useState<string>(request.fee?.toString() || '');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
+  const { user } = useUser();
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -50,6 +62,105 @@ const RequestDetailsDialog = ({ open, onOpenChange, request }: RequestDetailsPro
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleAccept = async () => {
+    if (!fee || parseFloat(fee) <= 0) {
+      toast({
+        title: "Invalid Fee",
+        description: "Please enter a valid service fee greater than 0.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setActionType('accept');
+
+    try {
+      const response = await BookingsAPI.updateBookingStatusPublic(
+        request._id, 
+        'confirmed', 
+        parseFloat(fee),
+        user?.id // Pass Clerk user ID for security verification
+      );
+
+      if (response.success) {
+        toast({
+          title: "Booking Accepted",
+          description: "You have successfully accepted this booking request.",
+        });
+        
+        // Refresh the parent component to update the list
+        if (onStatusChange) {
+          onStatusChange();
+        }
+        
+        // Close the dialog
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to accept booking.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error accepting booking:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while accepting the booking.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+      setActionType(null);
+    }
+  };
+
+  const handleReject = async () => {
+    setIsProcessing(true);
+    setActionType('reject');
+
+    try {
+      const response = await BookingsAPI.updateBookingStatusPublic(
+        request._id, 
+        'cancelled',
+        undefined,
+        user?.id // Pass Clerk user ID for security verification
+      );
+
+      if (response.success) {
+        toast({
+          title: "Booking Rejected",
+          description: "You have rejected this booking request.",
+        });
+        
+        // Refresh the parent component to update the list
+        if (onStatusChange) {
+          onStatusChange();
+        }
+        
+        // Close the dialog
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to reject booking.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error rejecting booking:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while rejecting the booking.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+      setActionType(null);
+    }
   };
 
   return (
@@ -118,26 +229,70 @@ const RequestDetailsDialog = ({ open, onOpenChange, request }: RequestDetailsPro
             </div>
           </div>
 
+          {/* Fee Input Section - Only show for pending bookings */}
+          {request.status === 'pending' && (
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <Label htmlFor="fee" className="text-sm font-medium text-yellow-800 mb-2 block">
+                Set Your Service Fee (Required to accept booking)
+              </Label>
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-800 text-lg font-semibold">$</span>
+                <Input
+                  id="fee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={fee}
+                  onChange={(e) => setFee(e.target.value)}
+                  placeholder="Enter your service fee"
+                  className="flex-1"
+                  disabled={isProcessing}
+                />
+              </div>
+              <p className="text-xs text-yellow-600 mt-1">
+                This fee will be visible to the client when you accept the booking.
+              </p>
+            </div>
+          )}
+
           <div className="flex justify-between gap-4 pt-4 border-t">
             <Button
               variant="destructive"
               className="flex-1"
-              onClick={() => onOpenChange(false)}
+              onClick={handleReject}
+              disabled={isProcessing || request.status !== 'pending'}
             >
-              Reject
+              {isProcessing && actionType === 'reject' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Rejecting...
+                </>
+              ) : (
+                'Reject'
+              )}
             </Button>
             <Button
               variant="outline"
               className="flex-1 gap-2"
               onClick={() => navigate(`/handyman/chat/${request._id}`)}
+              disabled={isProcessing}
             >
               <MessageSquare className="h-4 w-4" />
               Chat with Client
             </Button>
             <Button
               className="flex-1"
+              onClick={handleAccept}
+              disabled={isProcessing || request.status !== 'pending' || !fee || parseFloat(fee) <= 0}
             >
-              Accept
+              {isProcessing && actionType === 'accept' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Accepting...
+                </>
+              ) : (
+                'Accept'
+              )}
             </Button>
           </div>
         </div>
