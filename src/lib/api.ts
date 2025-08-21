@@ -132,6 +132,12 @@ export class BookingsAPI {
     const response = await api.patch(`/bookings/${bookingId}/status`, { status });
     return response.data;
   }
+
+  // Public endpoint to update booking status (for handyman dashboard)
+  static async updateBookingStatusPublic(bookingId: string, status: 'confirmed' | 'cancelled', fee?: number, clerkUserId?: string) {
+    const response = await api.patch(`/bookings/${bookingId}/status-public`, { status, fee, clerkUserId });
+    return response.data;
+  }
 }
 
 export class AuthAPI {

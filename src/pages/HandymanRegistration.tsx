@@ -425,7 +425,24 @@ const HandymanRegistration = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+
+  // Redirect if user is not authenticated
+  useEffect(() => {
+    if (isLoaded && !user) {
+      navigate('/sign-in');
+    }
+  }, [isLoaded, user, navigate]);
+
+  // Show loading state while Clerk is initializing
+  if (!isLoaded || !user) {
+    return (
+      <div className="min-h-screen w-full bg-[#f6f7fa] flex flex-col items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
   // Fetch available services from backend
   useEffect(() => {
@@ -593,6 +610,7 @@ const HandymanRegistration = () => {
 
       // Prepare handyman data
       const handymanData = {
+        clerkUserId: user?.id, // Add Clerk user ID
         name: personal.name,
         nic: personal.nic,
         contactNumber: personal.contactNumber,
