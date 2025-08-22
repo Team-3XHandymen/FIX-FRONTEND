@@ -60,11 +60,12 @@ const Navbar = ({ showHandymanDashboard = false }: NavbarProps) => {
                 </Button>
               </Link>
               {showHandymanDashboard && (
-                <Link to="/handyman/dashboard">
-                  <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                    Service Dashboard
-                  </Button>
-                </Link>
+                <Button 
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={() => window.open('/handyman/dashboard', '_blank')}
+                >
+                  Service Dashboard
+                </Button>
               )}
               <UserButton />
             </SignedIn>
