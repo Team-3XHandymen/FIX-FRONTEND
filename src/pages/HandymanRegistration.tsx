@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from '@clerk/clerk-react';
-import { HandymanAPI } from "@/lib/api";
+import { HandymanAPI, ClientAPI } from "@/lib/api";
 
 const REG_STEPS = [
   "Personal Information",
@@ -61,16 +61,39 @@ const StepIndicator = ({ step }: { step: number }) => (
   </div>
 );
 
-const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInputElement>) => void }) => (
+const Step1 = ({data, onChange, clientData}: { 
+  data: any, 
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void,
+  clientData?: any 
+}) => (
   <div>
     <div className="flex items-center text-2xl font-semibold text-gray-700 mb-6">
       <svg width="26" className="mr-2 text-gray-500" height="26" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-8 0v2"/><circle cx="12" cy="7" r="4"/><rect width="24" height="24"/></svg>
       <span>Personal Information</span>
     </div>
+    
+    {/* Auto-fill notification */}
+    {clientData && (
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center gap-2 text-blue-800">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span className="font-medium">Profile Information Auto-filled</span>
+        </div>
+        <p className="text-blue-700 text-sm mt-1">
+          We've pre-filled some fields using your existing client profile. You can edit any information as needed.
+        </p>
+      </div>
+    )}
+    
     <div className="space-y-4">
       <div>
         <label className="block mb-1 text-gray-700 font-medium">
           Full Name <span className="text-red-500">*</span>
+          {clientData?.name && (
+            <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Auto-filled</span>
+          )}
         </label>
         <input
           name="name"
@@ -96,10 +119,14 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
           placeholder="NIC / Driving License Number"
           required
         />
+        <p className="text-xs text-gray-500 mt-1">This information is not stored in your client profile and must be provided.</p>
       </div>
       <div>
         <label className="block mb-1 text-gray-700 font-medium">
           Contact Number <span className="text-red-500">*</span>
+          {clientData?.mobileNumber && (
+            <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Auto-filled</span>
+          )}
         </label>
         <input
           name="contactNumber"
@@ -115,17 +142,21 @@ const Step1 = ({data, onChange}: { data: any, onChange: (e: ChangeEvent<HTMLInpu
       <div>
         <label className="block mb-1 text-gray-700 font-medium">
           Email Address <span className="text-red-500">*</span>
+          {clientData?.email && (
+            <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Auto-filled</span>
+          )}
         </label>
         <input
           name="emailAddress"
           value={data.emailAddress}
-          onChange={onChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
           type="email"
           placeholder="Email Address"
           autoComplete="email"
           required
+          readOnly
         />
+        <p className="text-xs text-gray-500 mt-1">Email address is locked and cannot be changed from your client profile.</p>
       </div>
     </div>
   </div>
@@ -197,13 +228,15 @@ const Step3 = ({
   otherService,
   onServiceChange,
   onOtherChange,
-  availableServices
+  availableServices,
+  clientData
 }: {
   services: string[];
   otherService: string;
   onServiceChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onOtherChange: (e: ChangeEvent<HTMLInputElement>) => void;
   availableServices: any[];
+  clientData?: any;
 }) => (
   <div>
     <div className="text-2xl font-semibold text-gray-700 mb-6">
@@ -241,6 +274,7 @@ const Step4 = ({
   data, onInputChange, certs, onCertChange,
   days, hours, onDaysChange, onHoursChange,
   pay, onPayChange, otherPay, onOtherPayChange,
+  clientData,
 }: {
   data: any;
   onInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -254,6 +288,7 @@ const Step4 = ({
   onPayChange: (e: ChangeEvent<HTMLInputElement>) => void;
   otherPay: string;
   onOtherPayChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  clientData?: any;
 }) => (
   <div className="space-y-6">
     {/* Experience Section */}
@@ -357,6 +392,9 @@ const Step4 = ({
       <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
         <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
         <span>Location</span>
+        {clientData?.location && (
+          <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Auto-filled</span>
+        )}
       </div>
       <input
         name="location"
@@ -424,6 +462,8 @@ const HandymanRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [isLoadingClientData, setIsLoadingClientData] = useState(true);
+  const [clientData, setClientData] = useState<any>(null);
   const navigate = useNavigate();
   const { user, isLoaded } = useUser();
 
@@ -434,15 +474,44 @@ const HandymanRegistration = () => {
     }
   }, [isLoaded, user, navigate]);
 
-  // Show loading state while Clerk is initializing
-  if (!isLoaded || !user) {
-    return (
-      <div className="min-h-screen w-full bg-[#f6f7fa] flex flex-col items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
-      </div>
-    );
-  }
+  // Fetch client data and auto-fill form
+  useEffect(() => {
+    const fetchClientDataAndAutoFill = async () => {
+      if (!user || !isLoaded) return;
+      
+      try {
+        setIsLoadingClientData(true);
+        
+        // Fetch client data from backend
+        const response = await ClientAPI.getClientByUserId(user.id);
+        
+        if (response.success && response.data) {
+          setClientData(response.data);
+          
+          // Auto-fill form with available client data
+          const autoFilledData = {
+            name: response.data.name || response.data.username || "",
+            nic: "", // NIC is not stored in client profile
+            contactNumber: response.data.mobileNumber || "",
+            emailAddress: response.data.email || "",
+            experience: "",
+            location: response.data.location || "",
+          };
+          
+          setPersonal(autoFilledData);
+          
+          console.log('Auto-filled form with client data:', autoFilledData);
+        }
+      } catch (error) {
+        console.error('Error fetching client data:', error);
+        // Continue with empty form if client data fetch fails
+      } finally {
+        setIsLoadingClientData(false);
+      }
+    };
+
+    fetchClientDataAndAutoFill();
+  }, [user, isLoaded]);
 
   // Fetch available services from backend
   useEffect(() => {
@@ -458,6 +527,18 @@ const HandymanRegistration = () => {
     };
     fetchServices();
   }, []);
+
+  // Show loading state while Clerk is initializing or client data is loading
+  if (!isLoaded || !user || isLoadingClientData) {
+    return (
+      <div className="min-h-screen w-full bg-[#f6f7fa] flex flex-col items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <p className="mt-4 text-gray-600">
+          {!isLoaded || !user ? 'Loading...' : 'Loading your profile information...'}
+        </p>
+      </div>
+    );
+  }
 
   const handlePersonalChange = (e: ChangeEvent<HTMLInputElement>) => {
     setPersonal({ ...personal, [e.target.name]: e.target.value });
@@ -703,7 +784,7 @@ const HandymanRegistration = () => {
         <StepIndicator step={step} />
         <form id="handyman-registration-form" onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}>
           {step === 0 && (
-            <Step1 data={personal} onChange={handlePersonalChange} />
+            <Step1 data={personal} onChange={handlePersonalChange} clientData={clientData} />
           )}
 
           {step === 1 && (
@@ -734,6 +815,7 @@ const HandymanRegistration = () => {
               onPayChange={handlePayChange}
               otherPay={otherPay}
               onOtherPayChange={handleOtherPayChange}
+              clientData={clientData}
             />
           )}
         </form>

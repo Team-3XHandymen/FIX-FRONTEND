@@ -102,7 +102,7 @@ const ClientDashboardLayout = ({ children, title, subtitle, showHomeIcon = true,
                 <Button
                   variant="outline"
                   className="border-blue-600 text-blue-600 hover:bg-blue-50 py-2 mr-2"
-                  onClick={() => navigate("/handyman/dashboard")}
+                  onClick={() => window.open("/handyman/dashboard", "_blank")}
                 >
                   Service Dashboard
                 </Button>
