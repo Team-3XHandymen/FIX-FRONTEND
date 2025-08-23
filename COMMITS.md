@@ -100,3 +100,25 @@ Changes made:
     *Instead of asking the user to provide the same information several times, we now use the existing client information of the same profile when a client registers as a service provider. keeping the access to edit if the client wants to do so.
     *Service provider dashboard now opens in a seperate tab for ease of access and separation of two profiles.
 
+Collaborator name:Sewwandi
+Date: 23/8/25
+Commit msg: "Enhanced booking system with new status flow and updated handyman registration redirect"
+Changes made: 
+    *Updated booking status system to include new flow: pending → accepted/rejected → paid → done → completed
+    *Modified handyman registration to redirect to homepage instead of dashboard after successful registration
+    *Added new API endpoints for client and provider status updates
+    *Updated frontend components to handle new status transitions with appropriate action buttons
+    *Enhanced status display and user experience across all booking-related components
+Notes: New booking flow provides better control and transparency for both clients and service providers
+
+Collaborator name:Sewwandi
+Date: 23/8/25
+Commit msg: "Added Other Bookings section to client dashboard"
+Changes made: 
+    *Added new "Other Bookings" section below "Your Bookings" to display non-pending bookings
+    *Updated booking categorization to include accepted, paid, done, completed, and rejected statuses
+    *Added section headers for better organization: Pending Bookings, Other Bookings, Cancelled Bookings
+    *Enhanced status display with appropriate colors and badges for each booking status
+    *Improved user experience by showing all booking states in organized sections
+Notes: Clients can now easily track all their bookings across different statuses
+

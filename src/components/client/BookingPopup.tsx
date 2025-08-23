@@ -7,38 +7,107 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Calendar, Clock, MapPin, User, DollarSign } from "lucide-react";
+import { MessageSquare, Calendar, Clock, MapPin, User, DollarSign, CreditCard, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from '@clerk/clerk-react';
+import { BookingsAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-interface BookingPopupProps {
-  booking: {
-    _id: string;
-    serviceId: any; // Service object from populate
-    providerId: string;
-    clientId: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'done';
-    description: string;
-    fee: number | null;
-    location: {
-      address: string;
-      coordinates?: { lat: number; lng: number; };
-    };
-    scheduledTime: string | Date;
-    createdAt: string | Date;
-    // New enriched fields from backend
-    providerName?: string;
-    serviceCategory?: string;
+interface Booking {
+  _id: string;
+  serviceId: any; // Service object from populate
+  providerId: string;
+  clientId: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'paid' | 'done' | 'completed';
+  description: string;
+  fee: number | null;
+  location: {
+    address: string;
+    coordinates?: { lat: number; lng: number; };
   };
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  scheduledTime: string | Date;
+  createdAt: string | Date;
+  // New enriched fields from backend
+  providerName?: string;
+  serviceCategory?: string;
 }
 
-const BookingPopup = ({ booking, open, onOpenChange }: BookingPopupProps) => {
+const BookingPopup = ({ booking, open, onOpenChange }: { booking: Booking; open: boolean; onOpenChange: (open: boolean) => void }) => {
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { toast } = useToast();
 
   const handleChat = () => {
     navigate(`/client/chat/${booking._id}`, { state: { booking } });
     onOpenChange(false);
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await BookingsAPI.updateBookingStatusClient(
+        booking._id,
+        'paid',
+        user.id
+      );
+
+      if (response.success) {
+        toast({
+          title: "Payment Confirmed",
+          description: "Your payment has been confirmed. The service provider will now proceed with the work.",
+        });
+        onOpenChange(false);
+        // You might want to refresh the parent component here
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to confirm payment.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while confirming payment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMarkAsCompleted = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await BookingsAPI.updateBookingStatusClient(
+        booking._id,
+        'completed',
+        user.id
+      );
+
+      if (response.success) {
+        toast({
+          title: "Job Completed",
+          description: "Thank you for confirming! The service provider has been paid.",
+        });
+        onOpenChange(false);
+        // You might want to refresh the parent component here
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to mark job as completed.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error marking as completed:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while marking the job as completed.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Format date and time
@@ -57,11 +126,15 @@ const BookingPopup = ({ booking, open, onOpenChange }: BookingPopupProps) => {
     switch (status) {
       case 'pending':
         return { label: 'PENDING', className: 'bg-blue-100 text-blue-700' };
-      case 'confirmed':
-        return { label: 'CONFIRMED', className: 'bg-green-100 text-green-700' };
-      case 'cancelled':
-        return { label: 'CANCELLED', className: 'bg-red-100 text-red-700' };
+      case 'accepted':
+        return { label: 'ACCEPTED', className: 'bg-green-100 text-green-700' };
+      case 'rejected':
+        return { label: 'REJECTED', className: 'bg-red-100 text-red-700' };
+      case 'paid':
+        return { label: 'PAID', className: 'bg-purple-100 text-purple-700' };
       case 'done':
+        return { label: 'WORK COMPLETED', className: 'bg-orange-100 text-orange-700' };
+      case 'completed':
         return { label: 'COMPLETED', className: 'bg-gray-100 text-gray-700' };
       default:
         return { label: status.toUpperCase(), className: 'bg-gray-100 text-gray-700' };
@@ -152,15 +225,38 @@ const BookingPopup = ({ booking, open, onOpenChange }: BookingPopupProps) => {
             </div>
           </div>
 
-          {/* Chat Button - Only show for non-completed bookings */}
-          {booking.status !== 'done' && (
-            <div className="flex justify-end">
-              <Button onClick={handleChat} className="bg-green-600 hover:bg-green-500">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Chat with Provider
-              </Button>
-            </div>
-          )}
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            {/* Chat Button - Only show for non-completed bookings */}
+            {booking.status !== 'completed' && (
+              <div className="flex justify-end">
+                <Button onClick={handleChat} className="bg-green-600 hover:bg-green-500">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Chat with Provider
+                </Button>
+              </div>
+            )}
+
+            {/* Mark as Paid Button - Show when status is 'accepted' */}
+            {booking.status === 'accepted' && (
+              <div className="flex justify-end">
+                <Button onClick={handleMarkAsPaid} className="bg-purple-600 hover:bg-purple-500">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Confirm Payment
+                </Button>
+              </div>
+            )}
+
+            {/* Mark as Completed Button - Show when status is 'done' */}
+            {booking.status === 'done' && (
+              <div className="flex justify-end">
+                <Button onClick={handleMarkAsCompleted} className="bg-green-600 hover:bg-green-500">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Confirm Job Completion
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

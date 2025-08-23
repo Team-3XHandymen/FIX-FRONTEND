@@ -8,7 +8,7 @@ import { RefreshCw } from "lucide-react";
 
 interface Booking {
   _id: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'done';
+  status: 'pending' | 'accepted' | 'rejected' | 'paid' | 'done' | 'completed';
   description: string;
   fee: number | null;
   location: {
@@ -84,11 +84,15 @@ const RecentJobs = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed':
+      case 'accepted':
         return 'bg-blue-100 text-blue-800';
-      case 'cancelled':
+      case 'rejected':
         return 'bg-red-100 text-red-800';
+      case 'paid':
+        return 'bg-purple-100 text-purple-800';
       case 'done':
+        return 'bg-orange-100 text-orange-800';
+      case 'completed':
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -97,14 +101,18 @@ const RecentJobs = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'confirmed':
+      case 'accepted':
         return 'Accepted';
-      case 'cancelled':
+      case 'rejected':
         return 'Rejected';
+      case 'paid':
+        return 'Paid';
       case 'done':
+        return 'Work Done';
+      case 'completed':
         return 'Completed';
       default:
-        return status;
+        return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
 
