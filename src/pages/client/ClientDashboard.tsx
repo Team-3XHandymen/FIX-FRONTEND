@@ -11,6 +11,71 @@ import { ClientAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { isApiError } from "@/lib/utils";
 
+// Helper function to get status display text
+const getStatusDisplayText = (status: string): string => {
+  switch (status) {
+    case 'pending':
+      return 'PENDING';
+    case 'accepted':
+      return 'ACCEPTED';
+    case 'rejected':
+      return 'REJECTED';
+    case 'paid':
+      return 'PAID';
+    case 'done':
+      return 'WORK DONE';
+    case 'completed':
+      return 'COMPLETED';
+    default:
+      return status.toUpperCase();
+  }
+};
+
+// Helper function to get status badge styling
+const getStatusBadgeStyle = (status: string): string => {
+  switch (status) {
+    case 'pending':
+      return 'bg-blue-100 text-blue-700';
+    case 'accepted':
+      return 'bg-green-100 text-green-700';
+    case 'rejected':
+      return 'bg-red-100 text-red-700';
+    case 'paid':
+      return 'bg-purple-100 text-purple-700';
+    case 'done':
+      return 'bg-orange-100 text-orange-700';
+    case 'completed':
+      return 'bg-gray-100 text-gray-700';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+};
+
+// Helper function to get service icons based on service name
+const getServiceIcon = (serviceName: string): string => {
+  const name = serviceName.toLowerCase();
+
+  // Enhanced icons with better visual appeal
+  if (name.includes('electrical') || name.includes('electric')) return '⚡';
+  if (name.includes('plumbing') || name.includes('pipe')) return '🔧';
+  if (name.includes('carpentry') || name.includes('wood')) return '🪚';
+  if (name.includes('painting') || name.includes('paint')) return '🎨';
+  if (name.includes('cleaning') || name.includes('clean')) return '✨';
+  if (name.includes('gardening') || name.includes('garden')) return '🌱';
+  if (name.includes('roofing') || name.includes('roof')) return '🏠';
+  if (name.includes('appliance') || name.includes('repair')) return '🔨';
+  if (name.includes('pest') || name.includes('control')) return '🛡️';
+  if (name.includes('window')) return '🪟';
+  if (name.includes('home') || name.includes('house')) return '🏡';
+  if (name.includes('renovation') || name.includes('remodel')) return '🏗️';
+  if (name.includes('landscaping')) return '🌿';
+  if (name.includes('security') || name.includes('lock')) return '🔒';
+  if (name.includes('heating') || name.includes('hvac')) return '🔥';
+  if (name.includes('cooling') || name.includes('ac')) return '❄️';
+
+  return '🔧'; // Default icon
+};
+
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -126,7 +191,7 @@ const ClientDashboard = () => {
     const categorized = {
       upcoming: [] as any[],
       pending: [] as any[],
-      confirmed: [] as any[],
+      other: [] as any[], // New category for accepted, paid, done, completed, rejected
       cancelled: [] as any[]
     };
 
@@ -135,11 +200,12 @@ const ClientDashboard = () => {
         case 'pending':
           categorized.pending.push(booking);
           break;
-        case 'confirmed':
-          categorized.upcoming.push(booking);
-          break;
-        case 'cancelled':
-          categorized.cancelled.push(booking);
+        case 'accepted':
+        case 'paid':
+        case 'done':
+        case 'completed':
+        case 'rejected':
+          categorized.other.push(booking);
           break;
         default:
           break;
@@ -500,17 +566,18 @@ const ClientDashboard = () => {
           </div>
         ) : (
           <div className="space-y-4">
-                        {/* Confirmed/Upcoming Bookings */}
-            {categorizedBookings.confirmed.length > 0 && (
+            {/* Other Bookings (Accepted, Paid, Done, Completed, Rejected) */}
+            {categorizedBookings.other.length > 0 && (
               <div className="space-y-4 mb-6">
-                {categorizedBookings.confirmed.map(booking => (
+                <h3 className="text-lg font-medium text-gray-700 mb-3">Other Bookings</h3>
+                {categorizedBookings.other.map(booking => (
                   <div key={booking._id} 
-                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-green-500"
+                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-purple-500"
                     onClick={() => handleBookingClick(booking)}
                   >
                     <div className="flex items-center">
-                      <div className="bg-green-100 p-2 rounded-full mr-4">
-                        <div className="text-green-500 text-xl">🛠️</div>
+                      <div className="bg-purple-100 p-2 rounded-full mr-4">
+                        <div className="text-purple-500 text-xl">🛠️</div>
                       </div>
                       <div>
                         <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
@@ -519,30 +586,33 @@ const ClientDashboard = () => {
                         <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
                       </div>
                     </div>
-                <div className="flex items-center space-x-2">
-                      <div className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 font-medium">
-                        CONFIRMED
+                    <div className="flex items-center space-x-2">
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeStyle(booking.status)}`}>
+                        {getStatusDisplayText(booking.status)}
+                      </div>
+                      {booking.status !== 'completed' && booking.status !== 'rejected' && (
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleChat(booking);
+                          }} 
+                          className="bg-green-600 hover:bg-green-500 rounded-2xl"
+                        >
+                          <MessageSquare className="mr-1" size={16} /> Chat
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleChat(booking);
-                        }} 
-                        className="bg-green-600 hover:bg-green-500 rounded-2xl"
-                      >
-                    <MessageSquare className="mr-1" size={16} /> Chat
-                  </Button>
-                </div>
-              </div>
-            ))}
+                ))}
               </div>
             )}
 
             {/* Pending Bookings */}
             {categorizedBookings.pending.length > 0 && (
               <div className="space-y-4 mb-6">
+                <h3 className="text-lg font-medium text-gray-700 mb-3">Pending Bookings</h3>
                 {categorizedBookings.pending.map(booking => (
                   <div key={booking._id} 
                     className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
@@ -583,6 +653,7 @@ const ClientDashboard = () => {
             {/* Cancelled Bookings */}
             {categorizedBookings.cancelled.length > 0 && (
               <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-700 mb-3">Cancelled Bookings</h3>
                 {categorizedBookings.cancelled.map(booking => (
                   <div key={booking._id} 
                     className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-red-500 opacity-75"
@@ -639,28 +710,3 @@ const ClientDashboard = () => {
 };
 
 export default ClientDashboard;
-
-// Helper function to get service icons based on service name
-const getServiceIcon = (serviceName: string): string => {
-  const name = serviceName.toLowerCase();
-
-  // Enhanced icons with better visual appeal
-  if (name.includes('electrical') || name.includes('electric')) return '⚡';
-  if (name.includes('plumbing') || name.includes('pipe')) return '🔧';
-  if (name.includes('carpentry') || name.includes('wood')) return '🪚';
-  if (name.includes('painting') || name.includes('paint')) return '🎨';
-  if (name.includes('cleaning') || name.includes('clean')) return '✨';
-  if (name.includes('gardening') || name.includes('garden')) return '🌱';
-  if (name.includes('roofing') || name.includes('roof')) return '🏠';
-  if (name.includes('appliance') || name.includes('repair')) return '🔨';
-  if (name.includes('pest') || name.includes('control')) return '🛡️';
-  if (name.includes('window')) return '🪟';
-  if (name.includes('home') || name.includes('house')) return '🏡';
-  if (name.includes('renovation') || name.includes('remodel')) return '🏗️';
-  if (name.includes('landscaping')) return '🌿';
-  if (name.includes('security') || name.includes('lock')) return '🔒';
-  if (name.includes('heating') || name.includes('hvac')) return '🔥';
-  if (name.includes('cooling') || name.includes('ac')) return '❄️';
-
-  return '🔧'; // Default icon
-};

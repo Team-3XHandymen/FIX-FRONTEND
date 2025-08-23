@@ -731,9 +731,9 @@ const HandymanRegistration = () => {
         // Show success state
         setShowSuccess(true);
         
-        // Navigate to handyman dashboard after a short delay
+        // Navigate to homepage after a short delay to show both dashboard buttons
         setTimeout(() => {
-          navigate("/handyman/dashboard");
+          navigate("/");
         }, 2000);
       } else {
         alert(response.message || "Registration failed. Please try again.");
@@ -767,7 +767,7 @@ const HandymanRegistration = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
             <p className="text-gray-600">Your handyman registration has been completed successfully. You can now access handyman features.</p>
-            <p className="text-sm text-gray-500 mt-2">Redirecting to dashboard...</p>
+            <p className="text-sm text-gray-500 mt-2">Redirecting to homepage...</p>
           </div>
         </div>
       </div>

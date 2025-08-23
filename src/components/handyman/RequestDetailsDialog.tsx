@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { BookingsAPI } from "@/lib/api";
@@ -17,7 +17,7 @@ import { useUser } from '@clerk/clerk-react';
 
 interface Booking {
   _id: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'done';
+  status: 'pending' | 'accepted' | 'rejected' | 'paid' | 'done' | 'completed';
   description: string;
   fee: number | null;
   location: {
@@ -80,7 +80,7 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
     try {
       const response = await BookingsAPI.updateBookingStatusPublic(
         request._id, 
-        'confirmed', 
+        'accepted', 
         parseFloat(fee),
         user?.id // Pass Clerk user ID for security verification
       );
@@ -125,7 +125,7 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
     try {
       const response = await BookingsAPI.updateBookingStatusPublic(
         request._id, 
-        'cancelled',
+        'rejected',
         undefined,
         user?.id // Pass Clerk user ID for security verification
       );
@@ -255,45 +255,121 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
             </div>
           )}
 
-          <div className="flex justify-between gap-4 pt-4 border-t">
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={handleReject}
-              disabled={isProcessing || request.status !== 'pending'}
-            >
-              {isProcessing && actionType === 'reject' ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Rejecting...
-                </>
-              ) : (
-                'Reject'
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={() => navigate(`/handyman/chat/${request._id}`)}
-              disabled={isProcessing}
-            >
-              <MessageSquare className="h-4 w-4" />
-              Chat with Client
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleAccept}
-              disabled={isProcessing || request.status !== 'pending' || !fee || parseFloat(fee) <= 0}
-            >
-              {isProcessing && actionType === 'accept' ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Accepting...
-                </>
-              ) : (
-                'Accept'
-              )}
-            </Button>
+          {/* Action Buttons Section */}
+          <div className="space-y-4 pt-4 border-t">
+            {/* For pending bookings - show accept/reject buttons */}
+            {request.status === 'pending' && (
+              <div className="flex justify-between gap-4">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleReject}
+                  disabled={isProcessing || request.status !== 'pending'}
+                >
+                  {isProcessing && actionType === 'reject' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Rejecting...
+                    </>
+                  ) : (
+                    'Reject'
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={() => navigate(`/handyman/chat/${request._id}`)}
+                  disabled={isProcessing}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Chat with Client
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleAccept}
+                  disabled={isProcessing || request.status !== 'pending' || !fee || parseFloat(fee) <= 0}
+                >
+                  {isProcessing && actionType === 'accept' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Accepting...
+                    </>
+                  ) : (
+                    'Accept'
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* For paid bookings - show mark as done button */}
+            {request.status === 'paid' && (
+              <div className="flex justify-between gap-4">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={() => navigate(`/handyman/chat/${request._id}`)}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Chat with Client
+                </Button>
+                <Button
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  onClick={async () => {
+                    try {
+                      const response = await BookingsAPI.updateBookingStatusPublic(
+                        request._id,
+                        'done',
+                        undefined,
+                        user?.id
+                      );
+
+                      if (response.success) {
+                        toast({
+                          title: "Work Marked as Done",
+                          description: "You have marked this job as completed. Waiting for client confirmation.",
+                        });
+                        
+                        if (onStatusChange) {
+                          onStatusChange();
+                        }
+                        
+                        onOpenChange(false);
+                      } else {
+                        toast({
+                          title: "Error",
+                          description: response.message || "Failed to mark work as done.",
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (error) {
+                      console.error('Error marking work as done:', error);
+                      toast({
+                        title: "Error",
+                        description: "An error occurred while marking work as done.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Mark Work as Done
+                </Button>
+              </div>
+            )}
+
+            {/* For other statuses - show chat button only */}
+            {!['pending', 'paid'].includes(request.status) && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => navigate(`/handyman/chat/${request._id}`)}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Chat with Client
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

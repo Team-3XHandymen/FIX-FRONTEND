@@ -100,24 +100,6 @@ export class BookingsAPI {
     return response.data;
   }
 
-  static async updateBooking(bookingId: string, bookingData: any) {
-    const response = await api.put(`/bookings/${bookingId}`, bookingData);
-    return response.data;
-  }
-
-  static async deleteBooking(bookingId: string) {
-    const response = await api.delete(`/bookings/${bookingId}`);
-    return response.data;
-  }
-
-  // Get current user's bookings (uses /my endpoint)
-  static async getMyBookings() {
-    // For Clerk authentication, we need to get the current user
-    // This method should be called from a component that has access to Clerk context
-    const response = await api.get('/bookings/my');
-    return response.data;
-  }
-
   static async getClientBookings(clientId: string) {
     const response = await api.get(`/bookings/client/${clientId}`);
     return response.data;
@@ -134,8 +116,14 @@ export class BookingsAPI {
   }
 
   // Public endpoint to update booking status (for handyman dashboard)
-  static async updateBookingStatusPublic(bookingId: string, status: 'confirmed' | 'cancelled', fee?: number, clerkUserId?: string) {
+  static async updateBookingStatusPublic(bookingId: string, status: 'accepted' | 'rejected' | 'paid' | 'done' | 'completed', fee?: number, clerkUserId?: string) {
     const response = await api.patch(`/bookings/${bookingId}/status-public`, { status, fee, clerkUserId });
+    return response.data;
+  }
+
+  // Public endpoint to update booking status (for client dashboard)
+  static async updateBookingStatusClient(bookingId: string, status: 'paid' | 'completed', clerkUserId?: string) {
+    const response = await api.patch(`/bookings/${bookingId}/status-client`, { status, clerkUserId });
     return response.data;
   }
 }

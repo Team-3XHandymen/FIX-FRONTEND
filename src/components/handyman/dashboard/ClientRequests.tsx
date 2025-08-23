@@ -8,7 +8,7 @@ import { RefreshCw } from "lucide-react";
 
 interface Booking {
   _id: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'done';
+  status: 'pending' | 'accepted' | 'rejected' | 'paid' | 'done' | 'completed';
   description: string;
   fee: number | null;
   location: {
