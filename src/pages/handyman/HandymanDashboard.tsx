@@ -10,7 +10,6 @@ import {
 import StatsCards from "@/components/handyman/dashboard/StatsCards";
 import ClientRequests from "@/components/handyman/dashboard/ClientRequests";
 import TodaySchedule from "@/components/handyman/dashboard/TodaySchedule";
-import RecentJobs from "@/components/handyman/dashboard/RecentJobs";
 
 const HandymanDashboard = () => {
   const [tab, setTab] = useState<"requests" | "today">("requests");
@@ -18,6 +17,7 @@ const HandymanDashboard = () => {
 
   // Callback to refresh all components when booking status changes
   const handleBookingStatusChange = useCallback(() => {
+    console.log('Handyman dashboard - Status change detected, refreshing...');
     setRefreshKey(prev => prev + 1);
   }, []);
 
@@ -35,14 +35,12 @@ const HandymanDashboard = () => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="requests">
-          <ClientRequests onStatusChange={handleBookingStatusChange} />
+          <ClientRequests key={refreshKey} onStatusChange={handleBookingStatusChange} />
         </TabsContent>
         <TabsContent value="today">
           <TodaySchedule />
         </TabsContent>
       </Tabs>
-      
-      <RecentJobs key={refreshKey} />
     </HandymanDashboardLayout>
   );
 };

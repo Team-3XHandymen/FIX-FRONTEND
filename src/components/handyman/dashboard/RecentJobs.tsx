@@ -1,10 +1,8 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { HandymanAPI } from "@/lib/api";
-import JobCard from "./JobCard";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Clock, Eye } from "lucide-react";
 
 interface Booking {
   _id: string;
@@ -44,9 +42,7 @@ const RecentJobs = () => {
         setLoading(true);
       }
       
-      // Use the Clerk user ID from the current user
       const clerkUserId = user.id;
-      
       const response = await HandymanAPI.getProviderBookingsByClerkUserId(clerkUserId);
       if (response.success) {
         setBookings(response.data || []);
@@ -67,9 +63,9 @@ const RecentJobs = () => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Filter non-pending bookings for recent jobs
+  // Filter non-completed bookings for recent jobs
   const recentBookings = bookings
-    .filter(booking => booking.status !== 'pending')
+    .filter(booking => booking.status !== 'completed')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10); // Show only the 10 most recent
 
@@ -85,17 +81,17 @@ const RecentJobs = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'accepted':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'rejected':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'paid':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'done':
-        return 'bg-orange-100 text-orange-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -109,8 +105,8 @@ const RecentJobs = () => {
         return 'Paid';
       case 'done':
         return 'Work Done';
-      case 'completed':
-        return 'Completed';
+      case 'pending':
+        return 'Pending';
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -122,80 +118,92 @@ const RecentJobs = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b">
-          <h2 className="font-semibold">Recent Jobs</h2>
-        </div>
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-2 text-gray-500">Loading recent jobs...</p>
+      <div className="flex items-center justify-center py-8">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-6 w-6 animate-spin" />
+          <span>Loading recent jobs...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="font-semibold">Recent Jobs</h2>
-        <Button
-          variant="outline"
-          size="sm"
+    <div className="space-y-6">
+      {/* Header with refresh button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-800">Recent Jobs</h2>
+        <button
           onClick={handleManualRefresh}
           disabled={refreshing}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
         >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+          {refreshing ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Refresh
+        </button>
       </div>
-      
+
       {recentBookings.length === 0 ? (
-        <div className="p-8 text-center">
-          <div className="text-gray-400 mb-4">
-            <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock className="h-8 w-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Recent Jobs</h3>
-          <p className="text-gray-500">Jobs will appear here after you accept or reject client requests.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No recent jobs</h3>
+          <p className="text-gray-500">Your recent job history will appear here once you start accepting bookings.</p>
         </div>
       ) : (
-        <div className="grid gap-4 p-4">
-          {recentBookings.map((booking) => (
-            <div key={booking._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-medium text-gray-900">{booking.serviceName}</h3>
-                  <p className="text-sm text-gray-600">{booking.clientName}</p>
-                </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
-                  {getStatusText(booking.status)}
-                </span>
-              </div>
-              
-              <div className="space-y-2 text-sm text-gray-600">
-                <p className="line-clamp-2">{booking.description}</p>
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {booking.location.address}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {formatDate(booking.scheduledTime)}
-                  </span>
-                </div>
-                {booking.fee && (
-                  <div className="text-sm font-medium text-green-600">
-                    Fee: ${booking.fee}
+        <div className="grid gap-4">
+          {recentBookings.map(booking => (
+            <div key={booking._id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <h4 className="font-semibold text-gray-900">{booking.serviceName}</h4>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
+                        {getStatusText(booking.status)}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Client:</span>
+                        <span className="ml-2 font-medium text-gray-900">{booking.clientName}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Location:</span>
+                        <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Scheduled:</span>
+                        <span className="ml-2 font-medium text-gray-900">{formatDate(booking.scheduledTime)}</span>
+                      </div>
+                      {booking.fee && (
+                        <div>
+                          <span className="text-gray-500">Fee:</span>
+                          <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
+                
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="text-xs text-gray-500">
+                    ID: {booking._id}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Clock className="h-4 w-4" />
+                    <span>{formatDate(booking.createdAt)}</span>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
