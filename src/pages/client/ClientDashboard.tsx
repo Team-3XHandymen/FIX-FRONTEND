@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Search, MessageSquare, Loader2 } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { useServices, useMyBookings } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
@@ -86,12 +86,20 @@ const ClientDashboard = () => {
   const [search, setSearch] = useState("");
   const [clientData, setClientData] = useState<any>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch services from backend
   const { data: servicesResponse, isLoading, error } = useServices();
 
   // Fetch current user's bookings
   const { data: bookingsResponse, isLoading: isLoadingBookings, error: bookingsError, refetch: refetchBookings } = useMyBookings(user);
+
+  // Callback to refresh all components when booking status changes
+  const handleBookingStatusChange = useCallback(() => {
+    console.log('Client dashboard - Status change detected, refreshing...');
+    setRefreshKey(prev => prev + 1);
+    refetchBookings();
+  }, [refetchBookings]);
 
   // Check if we need to refresh bookings (e.g., coming from booking creation)
   useEffect(() => {
@@ -102,6 +110,18 @@ const ClientDashboard = () => {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state?.refreshBookings, user, refetchBookings, navigate, location.pathname]);
+
+  // Set up polling to refresh bookings every 30 seconds
+  useEffect(() => {
+    if (!user) return;
+    
+    const interval = setInterval(() => {
+      console.log('Client dashboard - Auto-refreshing bookings...');
+      refetchBookings();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user, refetchBookings]);
 
   // Debug logging
   console.log('ClientDashboard - User state:', { 
@@ -118,7 +138,8 @@ const ClientDashboard = () => {
       serviceName: booking.serviceName,
       serviceCategory: booking.serviceCategory,
       providerName: booking.providerName,
-      serviceId: booking.serviceId
+      serviceId: booking.serviceId,
+      status: booking.status
     })));
   }
 
@@ -170,9 +191,8 @@ const ClientDashboard = () => {
 
     const bookings = bookingsResponse.data;
     
-    // Filter out completed bookings and sort by scheduled date
+    // Don't filter out any bookings, show all of them
     return bookings
-      .filter((booking: any) => booking.status !== 'done')
       .sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime())
       .map((booking: any) => ({
         ...booking,
@@ -189,31 +209,47 @@ const ClientDashboard = () => {
   // Categorize bookings by status
   const categorizedBookings = useMemo(() => {
     const categorized = {
-      upcoming: [] as any[],
-      pending: [] as any[],
-      other: [] as any[], // New category for accepted, paid, done, completed, rejected
+      actionRequired: [] as any[], // Bookings that need client action
+      viewOnly: [] as any[], // Bookings just for viewing
       cancelled: [] as any[]
     };
 
+    console.log('Client Dashboard - Processing bookings:', processedBookings.map(b => ({ id: b._id, status: b.status })));
+
     processedBookings.forEach((booking: any) => {
       switch (booking.status) {
-        case 'pending':
-          categorized.pending.push(booking);
-          break;
         case 'accepted':
-        case 'paid':
         case 'done':
+          categorized.actionRequired.push(booking);
+          break;
+        case 'pending':
+        case 'paid':
         case 'completed':
         case 'rejected':
-          categorized.other.push(booking);
+          categorized.viewOnly.push(booking);
           break;
         default:
+          // Add any other statuses to view only
+          categorized.viewOnly.push(booking);
           break;
       }
     });
 
+    console.log('Client Dashboard - Categorized results:', {
+      actionRequired: categorized.actionRequired.map(b => ({ id: b._id, status: b.status })),
+      viewOnly: categorized.viewOnly.map(b => ({ id: b._id, status: b.status }))
+    });
+
     return categorized;
   }, [processedBookings]);
+
+  // Debug logging for categorized bookings
+  console.log('Processed bookings count:', processedBookings.length);
+  console.log('Categorized bookings:', {
+    actionRequired: categorizedBookings.actionRequired.length,
+    viewOnly: categorizedBookings.viewOnly.length,
+    cancelled: categorizedBookings.cancelled.length
+  });
 
   // Filter services based on search
   const filteredServices = useMemo(() => {
@@ -518,7 +554,10 @@ const ClientDashboard = () => {
            <Button
              variant="outline"
              size="sm"
-             onClick={() => refetchBookings()}
+             onClick={() => {
+               console.log('Manual refresh triggered');
+               refetchBookings();
+             }}
              disabled={isLoadingBookings}
              className="flex items-center gap-2"
            >
@@ -566,117 +605,245 @@ const ClientDashboard = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Other Bookings (Accepted, Paid, Done, Completed, Rejected) */}
-            {categorizedBookings.other.length > 0 && (
+            {/* Action Required Bookings */}
+            {categorizedBookings.actionRequired.length > 0 && (
               <div className="space-y-4 mb-6">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Other Bookings</h3>
-                {categorizedBookings.other.map(booking => (
-                  <div key={booking._id} 
-                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-purple-500"
-                    onClick={() => handleBookingClick(booking)}
-                  >
-                    <div className="flex items-center">
-                      <div className="bg-purple-100 p-2 rounded-full mr-4">
-                        <div className="text-purple-500 text-xl">🛠️</div>
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
-                        <p className="text-gray-500 text-sm">{booking.providerName || 'Unknown Provider'} • {booking.displayDate}, {booking.displayTime}</p>
-                        <p className="text-gray-400 text-xs">{booking.location.address}</p>
-                        <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeStyle(booking.status)}`}>
-                        {getStatusDisplayText(booking.status)}
-                      </div>
-                      {booking.status !== 'completed' && booking.status !== 'rejected' && (
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleChat(booking);
-                          }} 
-                          className="bg-green-600 hover:bg-green-500 rounded-2xl"
-                        >
-                          <MessageSquare className="mr-1" size={16} /> Chat
-                        </Button>
-                      )}
-                    </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-800">Action Required</h3>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-orange-50 border border-orange-200 rounded-full">
+                    <svg className="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <span className="text-sm font-medium text-orange-700">{categorizedBookings.actionRequired.length} booking(s) need your attention</span>
                   </div>
-                ))}
+                </div>
+                
+                <div className="grid gap-4">
+                  {categorizedBookings.actionRequired.map(booking => (
+                    <div key={booking._id} 
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+                    >
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                              <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(booking.status)}`}>
+                                {getStatusDisplayText(booking.status)}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-500">Provider:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.providerName || 'Unknown Provider'}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Location:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Scheduled:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.displayDate}, {booking.displayTime}</span>
+                              </div>
+                              {booking.fee && (
+                                <div>
+                                  <span className="text-gray-500">Fee:</span>
+                                  <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <div className="text-xs text-gray-500">
+                            ID: {booking._id}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {booking.status !== 'completed' && booking.status !== 'rejected' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChat(booking);
+                                }} 
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <MessageSquare className="mr-1" size={16} /> Chat
+                              </Button>
+                            )}
+                            <Button
+                              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
+                              onClick={() => handleBookingClick(booking)}
+                            >
+                              {booking.status === 'accepted' ? 'Confirm Payment' : 'Confirm Completion'}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Pending Bookings */}
-            {categorizedBookings.pending.length > 0 && (
+            {/* Recent Jobs */}
+            {categorizedBookings.viewOnly.length > 0 && (
               <div className="space-y-4 mb-6">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Pending Bookings</h3>
-                {categorizedBookings.pending.map(booking => (
-                  <div key={booking._id} 
-                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
-                    onClick={() => handleBookingClick(booking)}
-                  >
-                <div className="flex items-center">
-                  <div className="bg-blue-100 p-2 rounded-full mr-4">
-                    <div className="text-blue-500 text-xl">🛠️</div>
-                  </div>
-                  <div>
-                        <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
-                        <p className="text-gray-500 text-sm">{booking.providerName || 'Unknown Provider'} • {booking.displayDate}, {booking.displayTime}</p>
-                        <p className="text-gray-400 text-xs">{booking.location.address}</p>
-                        <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
-                  </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-800">Recent Jobs</h3>
                 </div>
-                <div className="flex items-center space-x-2">
-                      <div className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">
-                    PENDING
-                  </div>
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleChat(booking);
-                        }} 
-                        className="bg-green-600 hover:bg-green-500 rounded-2xl"
-                      >
-                    <MessageSquare className="mr-1" size={16} /> Chat
-                  </Button>
+                
+                <div className="grid gap-4">
+                  {categorizedBookings.viewOnly.map(booking => (
+                    <div key={booking._id} 
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+                    >
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                              <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(booking.status)}`}>
+                                {getStatusDisplayText(booking.status)}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-500">Provider:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.providerName || 'Unknown Provider'}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Location:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Scheduled:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.displayDate}, {booking.displayTime}</span>
+                              </div>
+                              {booking.fee && (
+                                <div>
+                                  <span className="text-gray-500">Fee:</span>
+                                  <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <div className="text-xs text-gray-500">
+                            ID: {booking._id}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {booking.status !== 'completed' && booking.status !== 'rejected' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChat(booking);
+                                }} 
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <MessageSquare className="mr-1" size={16} /> Chat
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                              onClick={() => handleBookingClick(booking)}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                  </div>
-                ))}
               </div>
             )}
 
             {/* Cancelled Bookings */}
             {categorizedBookings.cancelled.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Cancelled Bookings</h3>
-                {categorizedBookings.cancelled.map(booking => (
-                  <div key={booking._id} 
-                    className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-red-500 opacity-75"
-                    onClick={() => handleBookingClick(booking)}
-                  >
-                <div className="flex items-center">
-                      <div className="bg-red-100 p-2 rounded-full mr-4">
-                        <div className="text-red-500 text-xl">🛠️</div>
-                  </div>
-                  <div>
-                        <h3 className="font-medium">{booking.serviceCategory || 'Service'}</h3>
-                        <p className="text-gray-500 text-sm">{booking.providerName || 'Unknown Provider'} • {booking.displayDate}, {booking.displayTime}</p>
-                        <p className="text-gray-400 text-xs">{booking.location.address}</p>
-                        <p className="text-gray-400 text-xs">Booking ID: {booking._id}</p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-8 bg-red-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-800">Cancelled Bookings</h3>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-red-50 border border-red-200 rounded-full">
+                    <svg className="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    <span className="text-sm font-medium text-red-700">{categorizedBookings.cancelled.length} cancelled booking(s)</span>
                   </div>
                 </div>
-                <div className="flex items-center">
-                      <div className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 font-medium">
-                        CANCELLED
+                
+                <div className="grid gap-4">
+                  {categorizedBookings.cancelled.map(booking => (
+                    <div key={booking._id} 
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden opacity-75"
+                    >
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                              <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+                                CANCELLED
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-500">Provider:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.providerName || 'Unknown Provider'}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Location:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Scheduled:</span>
+                                <span className="ml-2 font-medium text-gray-900">{booking.displayDate}, {booking.displayTime}</span>
+                              </div>
+                              {booking.fee && (
+                                <div>
+                                  <span className="text-gray-500">Fee:</span>
+                                  <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <div className="text-xs text-gray-500">
+                            ID: {booking._id}
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                            onClick={() => handleBookingClick(booking)}
+                          >
+                            View Details
+                          </Button>
+                        </div>
                       </div>
-                  </div>
+                    </div>
+                  ))}
                 </div>
-                ))}
               </div>
             )}
           </div>
@@ -704,6 +871,7 @@ const ClientDashboard = () => {
           booking={selectedBooking}
           open={isPopupOpen}
           onOpenChange={setIsPopupOpen}
+          onStatusChange={handleBookingStatusChange}
         />
       )}
     </ClientDashboardLayout>;
