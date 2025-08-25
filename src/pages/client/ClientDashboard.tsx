@@ -6,6 +6,7 @@ import BookingPopup from "@/components/client/BookingPopup";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { useServices, useMyBookings } from "@/hooks/use-api";
+import { socketService } from "@/lib/socket";
 import { Input } from "@/components/ui/input";
 import { ClientAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -111,16 +112,23 @@ const ClientDashboard = () => {
     }
   }, [location.state?.refreshBookings, user, refetchBookings, navigate, location.pathname]);
 
-  // Set up polling to refresh bookings every 30 seconds
+  // Set up WebSocket listener for real-time updates
   useEffect(() => {
     if (!user) return;
     
-    const interval = setInterval(() => {
-      console.log('Client dashboard - Auto-refreshing bookings...');
+    // Listen for booking status changes
+    socketService.onBookingStatusChange((update) => {
+      console.log('Client dashboard - Status change detected via WebSocket:', update);
+      // Refresh bookings when status changes
       refetchBookings();
-    }, 30000); // 30 seconds
+      // Update refresh key to force re-render
+      setRefreshKey(prev => prev + 1);
+    });
 
-    return () => clearInterval(interval);
+    // Cleanup WebSocket listeners
+    return () => {
+      socketService.removeAllListeners();
+    };
   }, [user, refetchBookings]);
 
   // Debug logging
@@ -224,9 +232,12 @@ const ClientDashboard = () => {
           break;
         case 'pending':
         case 'paid':
-        case 'completed':
         case 'rejected':
+          // Only include non-completed bookings in viewOnly
           categorized.viewOnly.push(booking);
+          break;
+        case 'completed':
+          // Completed bookings go to service history, not here
           break;
         default:
           // Add any other statuses to view only
@@ -294,7 +305,9 @@ const ClientDashboard = () => {
   };
 
   const handleChat = (booking: any) => {
-    navigate(`/client/chat/${booking._id}`, { state: { booking } });
+    setSelectedBooking(booking);
+    setIsPopupOpen(true);
+    // The popup will default to details tab, but we can add logic to open chat tab if needed
   };
 
   const handleBookingClick = (booking: any) => {

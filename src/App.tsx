@@ -25,6 +25,7 @@ import HandymanProfile from "./pages/handyman/HandymanProfile";
 import HandymanNotifications from "./pages/handyman/HandymanNotifications";
 import HandymanAccount from "./pages/handyman/HandymanAccount";
 import HandymanBilling from "./pages/handyman/HandymanBilling";
+import HandymanServiceHistory from "./pages/handyman/HandymanServiceHistory";
 import CompleteProfile from "./pages/CompleteProfile";
 import ServiceDetails from "./pages/client/ServiceDetails";
 import SelectProfessional from "./pages/client/SelectProfessional";
@@ -69,6 +70,7 @@ const App = () => (
           <Route path="/handyman/notifications" element={<HandymanNotifications />} />
           <Route path="/handyman/account" element={<HandymanAccount />} />
           <Route path="/handyman/billing" element={<HandymanBilling />} />
+          <Route path="/handyman/service-history" element={<HandymanServiceHistory />} />
           <Route path="/client/select-professional" element={<SelectProfessional />} />
           <Route path="/handyman/registration" element={<HandymanRegistration />} />
           <Route path="/client/service-catalog" element={<ServiceCatalog />} />
