@@ -14,6 +14,7 @@ import { useState } from "react";
 import { BookingsAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from '@clerk/clerk-react';
+import ChatInterface from "@/components/ui/chat/ChatInterface";
 
 interface Booking {
   _id: string;
@@ -192,6 +193,7 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
   const [fee, setFee] = useState<string>(request.fee?.toString() || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details');
   const { user } = useUser();
 
   const formatDateTime = (dateString: string) => {
@@ -353,8 +355,47 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
           </DialogTitle>
         </DialogHeader>
 
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Details
+          </button>
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'chat'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Chat
+          </button>
+        </div>
+
         <div className="py-6 space-y-6">
-          {/* Service Information */}
+          {/* Chat Tab Content */}
+          {activeTab === 'chat' && (
+            <div className="mb-6">
+              <ChatInterface
+                bookingId={request._id}
+                currentUserId={user?.id || ''}
+                currentUserName={user?.username || user?.firstName || 'Handyman'}
+                isOpen={open}
+              />
+            </div>
+          )}
+
+          {/* Details Tab Content */}
+          {activeTab === 'details' && (
+            <>
+              {/* Service Information */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
@@ -515,7 +556,7 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
                 <Button
                   variant="outline"
                   className="flex-1 border-2 border-blue-200 text-blue-700 hover:bg-blue-50 py-3 px-6 rounded-xl font-semibold transition-all duration-200"
-                  onClick={() => navigate(`/handyman/chat/${request._id}`)}
+                  onClick={() => setActiveTab('chat')}
                 >
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Chat with Client
@@ -572,7 +613,7 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
                 <Button
                   variant="outline"
                   className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 py-3 px-6 rounded-xl font-semibold transition-all duration-200"
-                  onClick={() => navigate(`/handyman/chat/${request._id}`)}
+                  onClick={() => setActiveTab('chat')}
                 >
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Chat with Client
@@ -588,6 +629,8 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
               Close
             </Button>
           </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

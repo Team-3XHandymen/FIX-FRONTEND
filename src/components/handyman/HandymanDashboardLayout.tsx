@@ -26,6 +26,7 @@ const menuItems = [
   { label: "Schedule", route: "/handyman/schedule" },
   { label: "Jobs", route: "/handyman/jobs" },
   { label: "Clients", route: "/handyman/clients" },
+  { label: "Service History", route: "/handyman/service-history" },
   { label: "Settings", route: "/handyman/settings" },
   { label: "Profile", route: "/handyman/profile" },
   { label: "Account", route: "/handyman/account" },

@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { HandymanAPI } from "@/lib/api";
+import { socketService } from "@/lib/socket";
 import RequestDetailsDialog from "../RequestDetailsDialog";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle, Eye } from "lucide-react";
@@ -69,14 +70,25 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
   useEffect(() => {
     fetchBookings();
     
-    // Set up polling to refresh bookings every 30 seconds
-    const interval = setInterval(() => {
-      console.log('Handyman dashboard - Auto-refreshing bookings...');
-      fetchBookings(true); // Use refreshing state for auto-refresh
-    }, 30000); // 30 seconds
+    // Set up WebSocket listener for real-time updates
+    if (user) {
+      // Listen for booking status changes
+      socketService.onBookingStatusChange((update) => {
+        console.log('Handyman dashboard - Status change detected via WebSocket:', update);
+        // Refresh bookings when status changes
+        fetchBookings(true);
+        // Notify parent component
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      });
 
-    return () => clearInterval(interval);
-  }, [fetchBookings]);
+      // Cleanup WebSocket listeners
+      return () => {
+        socketService.removeAllListeners();
+      };
+    }
+  }, [fetchBookings, user, onStatusChange]);
 
   // Categorize bookings into two sections
   const categorizedBookings = useCallback(() => {
@@ -94,8 +106,11 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
         case 'accepted':
         case 'rejected':
         case 'done':
-        case 'completed':
+          // Only include non-completed bookings in viewOnly
           viewOnly.push(booking);
+          break;
+        case 'completed':
+          // Completed bookings go to service history, not here
           break;
         default:
           // Add any other statuses to view only

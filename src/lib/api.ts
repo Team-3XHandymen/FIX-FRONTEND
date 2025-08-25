@@ -126,6 +126,12 @@ export class BookingsAPI {
     const response = await api.patch(`/bookings/${bookingId}/status-client`, { status, clerkUserId });
     return response.data;
   }
+
+  // General method to update booking data
+  static async updateBooking(bookingId: string, bookingData: any) {
+    const response = await api.put(`/bookings/${bookingId}`, bookingData);
+    return response.data;
+  }
 }
 
 export class AuthAPI {
@@ -317,6 +323,31 @@ export class ClientAPI {
       // If check fails, user is not a handyman
       return false;
     }
+  }
+}
+
+export class ChatAPI {
+  // Get chat messages for a specific booking
+  static async getChatMessages(bookingId: string) {
+    const response = await api.get(`/chat/${bookingId}/messages`);
+    return response.data;
+  }
+
+  // Send a message via API (fallback when WebSocket is not available)
+  static async sendMessage(data: {
+    bookingId: string;
+    senderId: string;
+    senderName: string;
+    message: string;
+  }) {
+    const response = await api.post('/chat/send', data);
+    return response.data;
+  }
+
+  // Get all chats for a user
+  static async getUserChats(userId: string, userType: string) {
+    const response = await api.get(`/chat/user/${userId}?userType=${userType}`);
+    return response.data;
   }
 }
 
