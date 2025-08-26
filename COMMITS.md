@@ -160,3 +160,10 @@ Changes made:
     •	Added chat functionality to booking detail popups
     •	Updated routing to include new service history pages
 Notes: WebSocket implementation provides real-time updates without polling, improving performance and user experience
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 26/8/25
+Commit msg: "Created protected routes"
+Changes made: 
+    •	Created protected routes for handyman and client.
+    •	Fixed errors on the terminal aboout a duplicate variable declaration

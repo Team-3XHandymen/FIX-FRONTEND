@@ -34,6 +34,9 @@ import HandymanRegistration from "./pages/HandymanRegistration";
 import ClientChat from "./pages/client/ClientChat";
 import ServiceCatalog from "./pages/client/ServiceCatalog";
 import HandymanChat from "./pages/handyman/HandymanChat";
+import ProtectedClientRoute from "./components/auth/ProtectedClientRoute";
+import ProtectedHandymanRoute from "./components/auth/ProtectedHandymanRoute";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -49,32 +52,32 @@ const App = () => (
           <Route path="/services" element={<Services />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/signup/client" element={<ClientSignUp />} />
-          <Route path="/signup/handyman" element={<HandymanRegistration />} />
-          <Route path="/client/dashboard" element={<ClientDashboard />} />
-          <Route path="/client/service-details" element={<ServiceDetails />} />
-          <Route path="/client/profile" element={<ClientProfile />} />
-          <Route path="/client/service-history" element={<ClientServiceHistory />} />
-          <Route path="/client/upcoming-bookings" element={<ClientUpcomingBookings />} />
-          <Route path="/client/reviews" element={<ClientReviews />} />
-          <Route path="/client/payment-billing" element={<ClientPaymentBilling />} />
-          <Route path="/client/account-settings" element={<ClientAccountSettings />} />
-          <Route path="/client/complete-profile" element={<CompleteProfile />} />
-          <Route path="/client/chat/:bookingId" element={<ClientChat />} />
-          <Route path="/client/create-booking" element={<CreateBooking />} />
-          <Route path="/handyman/dashboard" element={<HandymanDashboard />} />
-          <Route path="/handyman/schedule" element={<HandymanSchedule />} />
-          <Route path="/handyman/jobs" element={<HandymanJobs />} />
-          <Route path="/handyman/clients" element={<HandymanClients />} />
-          <Route path="/handyman/settings" element={<HandymanSettings />} />
-          <Route path="/handyman/profile" element={<HandymanProfile />} />
-          <Route path="/handyman/notifications" element={<HandymanNotifications />} />
-          <Route path="/handyman/account" element={<HandymanAccount />} />
-          <Route path="/handyman/billing" element={<HandymanBilling />} />
-          <Route path="/handyman/service-history" element={<HandymanServiceHistory />} />
-          <Route path="/client/select-professional" element={<SelectProfessional />} />
+          <Route path="/signup/handyman" element={<ProtectedRoute><HandymanRegistration /></ProtectedRoute>} />
+          <Route path="/client/dashboard" element={<ProtectedClientRoute><ClientDashboard /></ProtectedClientRoute>} />
+          <Route path="/client/service-details" element={<ProtectedClientRoute><ServiceDetails /></ProtectedClientRoute>} />
+          <Route path="/client/profile" element={<ProtectedClientRoute><ClientProfile /></ProtectedClientRoute>} />
+          <Route path="/client/service-history" element={<ProtectedClientRoute><ClientServiceHistory /></ProtectedClientRoute>} />
+          <Route path="/client/upcoming-bookings" element={<ProtectedClientRoute><ClientUpcomingBookings /></ProtectedClientRoute>} />
+          <Route path="/client/reviews" element={<ProtectedClientRoute><ClientReviews /></ProtectedClientRoute>} />
+          <Route path="/client/payment-billing" element={<ProtectedClientRoute><ClientPaymentBilling /></ProtectedClientRoute>} />
+          <Route path="/client/account-settings" element={<ProtectedClientRoute><ClientAccountSettings /></ProtectedClientRoute>} />
+          <Route path="/client/complete-profile" element={<ProtectedClientRoute><CompleteProfile /></ProtectedClientRoute>} />
+          <Route path="/client/chat/:bookingId" element={<ProtectedClientRoute><ClientChat /></ProtectedClientRoute>} />
+          <Route path="/client/create-booking" element={<ProtectedClientRoute><CreateBooking /></ProtectedClientRoute>} />
+          <Route path="/handyman/dashboard" element={<ProtectedHandymanRoute><HandymanDashboard /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/schedule" element={<ProtectedHandymanRoute><HandymanSchedule /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/jobs" element={<ProtectedHandymanRoute><HandymanJobs /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/clients" element={<ProtectedHandymanRoute><HandymanClients /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/settings" element={<ProtectedHandymanRoute><HandymanSettings /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/profile" element={<ProtectedHandymanRoute><HandymanProfile /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/notifications" element={<ProtectedHandymanRoute><HandymanNotifications /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/account" element={<ProtectedHandymanRoute><HandymanAccount /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/billing" element={<ProtectedHandymanRoute><HandymanBilling /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/service-history" element={<ProtectedHandymanRoute><HandymanServiceHistory /></ProtectedHandymanRoute>} />
+          <Route path="/client/select-professional" element={<ProtectedClientRoute><SelectProfessional /></ProtectedClientRoute>} />
           <Route path="/handyman/registration" element={<HandymanRegistration />} />
-          <Route path="/client/service-catalog" element={<ServiceCatalog />} />
-          <Route path="/handyman/chat/:requestId" element={<HandymanChat />} />
+          <Route path="/client/service-catalog" element={<ProtectedClientRoute><ServiceCatalog /></ProtectedClientRoute>} />
+          <Route path="/handyman/chat/:requestId" element={<ProtectedHandymanRoute><HandymanChat /></ProtectedHandymanRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
