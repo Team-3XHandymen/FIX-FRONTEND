@@ -41,15 +41,8 @@ const ClientDashboardLayout = ({ children, title, subtitle, showHomeIcon = true,
   const { toast } = useToast();
   const { user, isLoaded } = useUser();
 
-  useEffect(() => {
-    if (isLoaded && !user) {
-      navigate("/");
-    }
-  }, [isLoaded, user, navigate]);
-
-  if (!isLoaded || !user) {
-    return null;
-  }
+  // Authentication is now handled by ProtectedClientRoute wrapper
+  // No need for manual checks here
 
   const handleLogout = () => {
     toast({

@@ -159,6 +159,11 @@ export class AuthAPI {
     const response = await api.get('/auth/verify');
     return response.data;
   }
+
+  static async verifyUserRole(userId: string) {
+    const response = await api.get(`/auth/verify-role/${userId}`);
+    return response.data;
+  }
 }
 
 export class UsersAPI {
