@@ -356,7 +356,40 @@ export class ChatAPI {
   }
 }
 
+export class StripeAPI {
+  // Create a Stripe Express account for a service provider
+  static async createProviderAccount(userId: string) {
+    const response = await api.post('/stripe/create-provider-account', { userId });
+    return response.data;
+  }
+
+  // Get provider's Stripe account status
+  static async getProviderAccountStatus(userId: string) {
+    const response = await api.get(`/stripe/provider-account/${userId}`);
+    return response.data;
+  }
+
+  // Create a checkout session for a booking
+  static async createCheckoutSession(bookingId: string) {
+    const response = await api.post('/stripe/create-checkout-session', { bookingId });
+    return response.data;
+  }
+
+  // Get payment details by booking ID
+  static async getPaymentByBookingId(bookingId: string) {
+    const response = await api.get(`/stripe/payment/booking/${bookingId}`);
+    return response.data;
+  }
+
+  // Create a refund for a payment
+  static async createRefund(paymentId: string, amount?: number, reason?: string) {
+    const response = await api.post(`/stripe/refund/${paymentId}`, { amount, reason });
+    return response.data;
+  }
+}
+
 // Export the main api instance for custom requests
+export { api };
 export default api;
 
 // Export types for better TypeScript support
