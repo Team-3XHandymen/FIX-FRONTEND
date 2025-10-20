@@ -1,4 +1,4 @@
-
+import React from "react";
 import { useState, useCallback, useEffect } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { HandymanAPI } from "@/lib/api";
@@ -47,11 +47,11 @@ const RecentJobs = () => {
       if (response.success) {
         setBookings(response.data || []);
       } else {
-        console.error('Failed to fetch bookings:', response.message);
+        // Failed to fetch bookings
         setBookings([]);
       }
     } catch (error) {
-      console.error('Failed to fetch provider bookings:', error);
+      // Failed to fetch provider bookings
       setBookings([]);
     } finally {
       setLoading(false);
@@ -63,40 +63,33 @@ const RecentJobs = () => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Filter non-completed bookings for recent jobs
-  const recentBookings = bookings
-    .filter(booking => booking.status !== 'completed')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 10); // Show only the 10 most recent
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const handleRefresh = () => {
+    fetchBookings(true);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'paid':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'done':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 text-yellow-800';
+      case 'accepted':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'paid':
+        return 'bg-blue-100 text-blue-800';
+      case 'done':
+        return 'bg-purple-100 text-purple-800';
+      case 'completed':
+        return 'bg-gray-100 text-gray-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'pending':
+        return 'Pending';
       case 'accepted':
         return 'Accepted';
       case 'rejected':
@@ -105,110 +98,136 @@ const RecentJobs = () => {
         return 'Paid';
       case 'done':
         return 'Work Done';
-      case 'pending':
-        return 'Pending';
+      case 'completed':
+        return 'Completed';
       default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
+        return status;
     }
   };
 
-  const handleManualRefresh = useCallback(() => {
-    fetchBookings(true);
-  }, [fetchBookings]);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="h-6 w-6 animate-spin" />
-          <span>Loading recent jobs...</span>
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Recent Jobs</h3>
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with refresh button */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">Recent Jobs</h2>
-        <button
-          onClick={handleManualRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-        >
-          {refreshing ? (
-            <RefreshCw className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Refresh
-        </button>
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Recent Jobs</h3>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {recentBookings.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="h-8 w-8 text-gray-400" />
+      <div className="p-6">
+        {bookings.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <Clock className="w-8 h-8 text-gray-400" />
+            </div>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">No Recent Jobs</h4>
+            <p className="text-gray-500">You haven't completed any jobs yet.</p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No recent jobs</h3>
-          <p className="text-gray-500">Your recent job history will appear here once you start accepting bookings.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {recentBookings.map(booking => (
-            <div key={booking._id} 
-              className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
+        ) : (
+          <div className="space-y-4">
+            {bookings.slice(0, 5).map((booking) => (
+              <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <h4 className="font-semibold text-gray-900">{booking.serviceName}</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium text-gray-900">{booking.serviceName}</h4>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
                         {getStatusText(booking.status)}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
                     
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Client:</span>
-                        <span className="ml-2 font-medium text-gray-900">{booking.clientName}</span>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Client:</span>
+                        <span>{booking.clientName}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Location:</span>
-                        <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Location:</span>
+                        <span>{booking.location.address}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Scheduled:</span>
-                        <span className="ml-2 font-medium text-gray-900">{formatDate(booking.scheduledTime)}</span>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Scheduled:</span>
+                        <span>{formatDate(booking.scheduledTime)} at {formatTime(booking.scheduledTime)}</span>
                       </div>
+                      
                       {booking.fee && (
-                        <div>
-                          <span className="text-gray-500">Fee:</span>
-                          <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Fee:</span>
+                          <span className="font-semibold text-green-600">${booking.fee}</span>
                         </div>
                       )}
                     </div>
+                    
+                    <p className="mt-2 text-sm text-gray-700 line-clamp-2">
+                      {booking.description}
+                    </p>
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="text-xs text-gray-500">
-                    ID: {booking._id}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatDate(booking.createdAt)}</span>
+                  
+                  <div className="ml-4 flex flex-col gap-2">
+                    <button className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors">
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+            
+            {bookings.length > 5 && (
+              <div className="text-center pt-4">
+                <button className="text-blue-600 hover:text-blue-800 font-medium">
+                  View All Jobs ({bookings.length})
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -97,7 +97,6 @@ const ClientDashboard = () => {
 
   // Callback to refresh all components when booking status changes
   const handleBookingStatusChange = useCallback(() => {
-    console.log('Client dashboard - Status change detected, refreshing...');
     setRefreshKey(prev => prev + 1);
     refetchBookings();
   }, [refetchBookings]);
@@ -105,7 +104,6 @@ const ClientDashboard = () => {
   // Check if we need to refresh bookings (e.g., coming from booking creation)
   useEffect(() => {
     if (location.state?.refreshBookings && user) {
-      console.log('Refreshing bookings due to navigation state');
       refetchBookings();
       // Clear the navigation state to prevent infinite refreshes
       navigate(location.pathname, { replace: true, state: {} });
@@ -353,7 +351,7 @@ const ClientDashboard = () => {
           const profileCompletion = [
             clientData.name ? 1 : 0,
             clientData.mobileNumber ? 1 : 0,
-            clientData.address?.street ? 1 : 0
+            clientData.location ? 1 : 0
           ].reduce((sum, field) => sum + field, 0);
           
           const completionPercentage = Math.round((profileCompletion / 3) * 100);
@@ -422,14 +420,14 @@ const ClientDashboard = () => {
                   </div>
                 </div>
 
-                <div className={`flex items-center p-3 rounded-lg ${clientData.address?.street ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
-                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.address?.street ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                <div className={`flex items-center p-3 rounded-lg ${clientData.location ? 'bg-green-100 border border-green-200' : 'bg-orange-100 border border-orange-200'}`}>
+                  <div className={`w-3 h-3 rounded-full mr-3 ${clientData.location ? 'bg-green-500' : 'bg-orange-500'}`}></div>
                   <div>
-                    <div className={`text-sm font-medium ${clientData.address?.street ? 'text-green-800' : 'text-orange-800'}`}>
+                    <div className={`text-sm font-medium ${clientData.location ? 'text-green-800' : 'text-orange-800'}`}>
                       Address
                     </div>
-                    <div className={`text-xs ${clientData.address?.street ? 'text-green-600' : 'text-orange-600'}`}>
-                      {clientData.address?.street ? '✓ Completed' : 'Missing'}
+                    <div className={`text-xs ${clientData.location ? 'text-green-600' : 'text-orange-600'}`}>
+                      {clientData.location ? '✓ Completed' : 'Missing'}
                     </div>
                   </div>
                 </div>

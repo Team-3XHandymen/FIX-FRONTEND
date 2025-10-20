@@ -5,6 +5,7 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from '@clerk/clerk-react';
 import { HandymanAPI, ClientAPI } from "@/lib/api";
+import { LocationSelector } from "@/components/ui/location-selector";
 
 const REG_STEPS = [
   "Personal Information",
@@ -274,7 +275,7 @@ const Step4 = ({
   data, onInputChange, certs, onCertChange,
   days, hours, onDaysChange, onHoursChange,
   pay, onPayChange, otherPay, onOtherPayChange,
-  clientData,
+  clientData, onLocationChange, locationInputValue, onLocationInputChange
 }: {
   data: any;
   onInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -289,6 +290,9 @@ const Step4 = ({
   otherPay: string;
   onOtherPayChange: (e: ChangeEvent<HTMLInputElement>) => void;
   clientData?: any;
+  onLocationChange: (locationData: any) => void;
+  locationInputValue: string;
+  onLocationInputChange: (value: string) => void;
 }) => (
   <div className="space-y-6">
     {/* Experience Section */}
@@ -389,20 +393,22 @@ const Step4 = ({
 
     {/* Location Section */}
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700">
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-700 mb-2">
         <svg width="22" height="22" className="text-gray-500" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
         <span>Location</span>
         {clientData?.location && (
           <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Auto-filled</span>
         )}
       </div>
-      <input
-        name="location"
-        value={data.location || ''}
-        onChange={onInputChange}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        placeholder="e.g., Colombo, Sri Lanka"
+      <LocationSelector
+        value={locationInputValue}
+        onChange={onLocationChange}
+        onInputChange={onLocationInputChange}
+        label=""
+        placeholder="Search for your city or click to set on map"
+        required={true}
       />
+      <p className="text-xs text-gray-500 mt-1">Start typing your city name and select from suggestions</p>
     </div>
 
     {/* Payment Methods Section */}
@@ -464,6 +470,11 @@ const HandymanRegistration = () => {
   const [availableServices, setAvailableServices] = useState<any[]>([]);
   const [isLoadingClientData, setIsLoadingClientData] = useState(true);
   const [clientData, setClientData] = useState<any>(null);
+  
+  // Location autocomplete states
+  const [locationInputValue, setLocationInputValue] = useState("");
+  const [locationCoordinates, setLocationCoordinates] = useState<{lat: number, lng: number} | null>(null);
+  
   const navigate = useNavigate();
   const { user, isLoaded } = useUser();
 
@@ -499,6 +510,11 @@ const HandymanRegistration = () => {
           };
           
           setPersonal(autoFilledData);
+          
+          // Also set location input value for autocomplete
+          if (response.data.location) {
+            setLocationInputValue(response.data.location);
+          }
           
           console.log('Auto-filled form with client data:', autoFilledData);
         }
@@ -596,6 +612,26 @@ const HandymanRegistration = () => {
   };
 
   const handleOtherPayChange = (e: ChangeEvent<HTMLInputElement>) => setOtherPay(e.target.value);
+
+  const handleLocationChange = (locationData: any) => {
+    // Update both the location string and coordinates
+    setPersonal({ ...personal, location: locationData.city || locationData.address });
+    setLocationInputValue(locationData.city || locationData.address);
+    setLocationCoordinates({ lat: locationData.lat, lng: locationData.lng });
+    
+    console.log('Location selected:', {
+      location: locationData.city || locationData.address,
+      coordinates: { lat: locationData.lat, lng: locationData.lng }
+    });
+  };
+
+  const handleLocationInputChange = (value: string) => {
+    setLocationInputValue(value);
+    // If user types manually without selecting, update the location string
+    if (value !== personal.location) {
+      setPersonal({ ...personal, location: value });
+    }
+  };
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.preventDefault(); // Prevent any form submission
@@ -701,6 +737,7 @@ const HandymanRegistration = () => {
         certifications: certs,
         services: services, // Only service IDs, no skills array
         location: personal.location || '', // Add location field
+        coordinates: locationCoordinates, // Add coordinates for distance calculations
         availability: {
           workingDays: workingDaysString,
           workingHours: workingHoursArray.filter(hour => hour.trim() !== '').join(', '),
@@ -816,6 +853,9 @@ const HandymanRegistration = () => {
               otherPay={otherPay}
               onOtherPayChange={handleOtherPayChange}
               clientData={clientData}
+              onLocationChange={handleLocationChange}
+              locationInputValue={locationInputValue}
+              onLocationInputChange={handleLocationInputChange}
             />
           )}
         </form>

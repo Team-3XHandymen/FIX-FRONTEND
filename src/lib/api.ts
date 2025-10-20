@@ -40,18 +40,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle common errors
-    if (error.response?.status === 401) {
-      // Unauthorized - don't redirect automatically for handyman users
-      // Let the components handle authentication as needed
-      console.error('Unauthorized request - authentication required');
-    } else if (error.response?.status === 403) {
-      // Forbidden
-      console.error('Access forbidden');
-    } else if (error.response?.status === 500) {
-      // Server error
-      console.error('Server error occurred');
-    }
+    // Handle common errors silently
     return Promise.reject(error);
   }
 );

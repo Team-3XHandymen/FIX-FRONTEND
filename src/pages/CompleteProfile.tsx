@@ -3,15 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { LocationSelector } from "@/components/ui/location-selector";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [locationValue, setLocationValue] = useState("");
+  const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+
+  const handleLocationChange = (locationData: any) => {
+    setLocationValue(locationData.city || locationData.address);
+    setCoordinates({ lat: locationData.lat, lng: locationData.lng });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Here you would typically save the profile data including location and coordinates
+    console.log('Profile data:', { locationValue, coordinates });
     navigate('/client/dashboard');
   };
 
@@ -37,19 +47,17 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Address Details</Label>
-              <div className="space-y-3">
-                <Input placeholder="Address Line 1" required />
-                <Input placeholder="Address Line 2 (Optional)" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="City" required />
-                  <Input placeholder="State/Province" required />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Postal Code" required />
-                  <Input placeholder="Country" required />
-                </div>
-              </div>
+              <Label>Location</Label>
+              <LocationSelector
+                value={locationValue}
+                onChange={handleLocationChange}
+                onInputChange={setLocationValue}
+                placeholder="Search for your city or click to set on map"
+                required={true}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Select your location to help us find nearby service providers
+              </p>
             </div>
 
             <div className="space-y-2">
