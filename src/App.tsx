@@ -31,9 +31,9 @@ import ServiceDetails from "./pages/client/ServiceDetails";
 import SelectProfessional from "./pages/client/SelectProfessional";
 import CreateBooking from "./pages/client/CreateBooking";
 import HandymanRegistration from "./pages/HandymanRegistration";
-import ClientChat from "./pages/client/ClientChat";
+import ClientChatRoom from "./pages/client/ClientChatRoom";
 import ServiceCatalog from "./pages/client/ServiceCatalog";
-import HandymanChat from "./pages/handyman/HandymanChat";
+import HandymanChatRoom from "./pages/handyman/HandymanChatRoom";
 import ProtectedClientRoute from "./components/auth/ProtectedClientRoute";
 import ProtectedHandymanRoute from "./components/auth/ProtectedHandymanRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -62,7 +62,7 @@ const App = () => (
           <Route path="/client/payment-billing" element={<ProtectedClientRoute><ClientPaymentBilling /></ProtectedClientRoute>} />
           <Route path="/client/account-settings" element={<ProtectedClientRoute><ClientAccountSettings /></ProtectedClientRoute>} />
           <Route path="/client/complete-profile" element={<ProtectedClientRoute><CompleteProfile /></ProtectedClientRoute>} />
-          <Route path="/client/chat/:bookingId" element={<ProtectedClientRoute><ClientChat /></ProtectedClientRoute>} />
+          <Route path="/client/chat/:bookingId" element={<ProtectedClientRoute><ClientChatRoom /></ProtectedClientRoute>} />
           <Route path="/client/create-booking" element={<ProtectedClientRoute><CreateBooking /></ProtectedClientRoute>} />
           <Route path="/handyman/dashboard" element={<ProtectedHandymanRoute><HandymanDashboard /></ProtectedHandymanRoute>} />
           <Route path="/handyman/schedule" element={<ProtectedHandymanRoute><HandymanSchedule /></ProtectedHandymanRoute>} />
@@ -77,7 +77,7 @@ const App = () => (
           <Route path="/client/select-professional" element={<ProtectedClientRoute><SelectProfessional /></ProtectedClientRoute>} />
           <Route path="/handyman/registration" element={<HandymanRegistration />} />
           <Route path="/client/service-catalog" element={<ProtectedClientRoute><ServiceCatalog /></ProtectedClientRoute>} />
-          <Route path="/handyman/chat/:requestId" element={<ProtectedHandymanRoute><HandymanChat /></ProtectedHandymanRoute>} />
+          <Route path="/handyman/chat/:bookingId" element={<ProtectedHandymanRoute><HandymanChatRoom /></ProtectedHandymanRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

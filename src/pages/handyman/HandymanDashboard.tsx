@@ -11,6 +11,7 @@ import StatsCards from "@/components/handyman/dashboard/StatsCards";
 import ClientRequests from "@/components/handyman/dashboard/ClientRequests";
 import TodaySchedule from "@/components/handyman/dashboard/TodaySchedule";
 import RecentJobs from "@/components/handyman/dashboard/RecentJobs";
+import RecentMessages from "@/components/handyman/dashboard/RecentMessages";
 
 const HandymanDashboard = () => {
   const [tab, setTab] = useState<"requests" | "today">("requests");
@@ -47,8 +48,9 @@ const HandymanDashboard = () => {
           </Tabs>
         </div>
 
-        {/* Sidebar - Recent Jobs */}
-        <div className="lg:col-span-1">
+        {/* Sidebar - Recent Messages above Recent Jobs */}
+        <div className="lg:col-span-1 space-y-6">
+          <RecentMessages />
           <RecentJobs />
         </div>
       </div>

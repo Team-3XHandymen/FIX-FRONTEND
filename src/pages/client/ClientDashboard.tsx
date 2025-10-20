@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Search, MessageSquare, Loader2 } from "lucide-react";
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import BookingPopup from "@/components/client/BookingPopup";
+import RecentMessages from "@/components/client/RecentMessages";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useUser } from '@clerk/clerk-react';
 import { useServices, useMyBookings } from "@/hooks/use-api";
@@ -281,13 +282,6 @@ const ClientDashboard = () => {
         usageCount: service.usageCount || 0
       }));
   }, [services]);
-
-  const messages = [{
-    id: 1,
-    sender: "Kamal Perera (Plumber)",
-    message: "I'll be arriving in 10 minutes...",
-    time: "10:30 AM"
-  }];
 
   const handleServiceClick = (service: {
     _id: string;
@@ -616,7 +610,10 @@ const ClientDashboard = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Action Required Bookings */}
+            {/* Action Required and Recent Messages side-by-side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="lg:col-span-1">
+                {/* Action Required Bookings */}
             {categorizedBookings.actionRequired.length > 0 && (
               <div className="space-y-4 mb-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -702,6 +699,11 @@ const ClientDashboard = () => {
                 </div>
               </div>
             )}
+              </div>
+              <div className="lg:col-span-1">
+                <RecentMessages />
+              </div>
+            </div>
 
             {/* Recent Jobs */}
             {categorizedBookings.viewOnly.length > 0 && (
@@ -861,21 +863,6 @@ const ClientDashboard = () => {
         )}
       </div>
       
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Recent Messages</h2>
-        <div className="space-y-3">
-          {messages.map(message => <div key={message.id} className="bg-white p-4 rounded-lg shadow-sm flex items-start">
-              <div className="bg-green-500 text-white rounded-full w-10 h-10 flex items-center justify-center mr-4">
-                JS
-              </div>
-              <div>
-                <h3 className="font-medium">{message.sender}</h3>
-                <p className="text-gray-600 text-sm">{message.message}</p>
-                <p className="text-gray-400 text-xs mt-1">{message.time}</p>
-              </div>
-            </div>)}
-        </div>
-      </div>
       
       {selectedBooking && (
         <BookingPopup
