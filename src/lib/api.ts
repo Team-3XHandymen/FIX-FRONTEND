@@ -278,6 +278,11 @@ export class HandymanAPI {
     const response = await api.get(`/bookings/provider-db/${providerDatabaseId}`);
     return response.data;
   }
+
+  static async getUserChats(userId: string, userType: string) {
+    const response = await api.get(`/chat/user?userId=${userId}&userType=${userType}`);
+    return response.data;
+  }
 }
 
 export class ClientAPI {
@@ -298,6 +303,11 @@ export class ClientAPI {
 
   static async getAllClients() {
     const response = await api.get('/clients');
+    return response.data;
+  }
+
+  static async getUserChats(userId: string, userType: string) {
+    const response = await api.get(`/chat/user?userId=${userId}&userType=${userType}`);
     return response.data;
   }
 

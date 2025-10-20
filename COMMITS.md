@@ -208,3 +208,8 @@ Changes made:
     • Added recent jobs column to the service provider dashboard.
 Notes: Client Profile and Dashboard are now fully in sync for location—selection, persistence, clearing, and progress all behave consistently.
 Next steps: - 
+
+Collaborator name:Sewwandi
+Date: 20/10/25
+Commit msg: "Recent messages"
+Changes made: • Fixed recent msgs on the client and handyman dashboards
