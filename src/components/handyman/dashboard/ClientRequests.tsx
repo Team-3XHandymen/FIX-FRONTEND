@@ -55,11 +55,11 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
       if (response.success) {
         setBookings(response.data || []);
       } else {
-        console.error('Failed to fetch bookings:', response.message);
+        // Failed to fetch bookings
         setBookings([]);
       }
     } catch (error) {
-      console.error('Failed to fetch provider bookings:', error);
+      // Failed to fetch provider bookings
       setBookings([]);
     } finally {
       setLoading(false);

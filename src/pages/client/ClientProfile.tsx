@@ -10,6 +10,7 @@ import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import { useUser } from '@clerk/clerk-react';
 import { ClientAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { LocationSelector } from "@/components/ui/location-selector";
 
 interface ClientData {
   _id: string;
@@ -29,6 +30,10 @@ interface ClientData {
     };
   };
   location?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   rating?: number;
   preferences?: {
     preferredServices?: string[];
@@ -46,6 +51,11 @@ const ClientProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<ClientData>>({});
+  const [locationData, setLocationData] = useState<{
+    location: string;
+    coordinates?: { lat: number; lng: number };
+  } | null>(null);
+  const [locationInputValue, setLocationInputValue] = useState<string>('');
 
   // Load client data from database
   useEffect(() => {
@@ -57,6 +67,15 @@ const ClientProfile = () => {
         const response = await ClientAPI.getClientByUserId(user.id);
         setClientData(response.data);
         setEditData(response.data);
+        
+        // Initialize location data
+        if (response.data.location) {
+          setLocationData({
+            location: response.data.location,
+            coordinates: response.data.coordinates
+          });
+          setLocationInputValue(response.data.location);
+        }
       } catch (error) {
         console.error('Error loading client data:', error);
         toast({
@@ -95,7 +114,7 @@ const ClientProfile = () => {
       const profileCompletion = [
         updatedData.name ? 1 : 0,
         updatedData.mobileNumber ? 1 : 0,
-        updatedData.address?.street ? 1 : 0
+        updatedData.location ? 1 : 0
       ].reduce((sum, field) => sum + field, 0);
       
       const completionPercentage = Math.round((profileCompletion / 3) * 100);
@@ -144,6 +163,31 @@ const ClientProfile = () => {
     }));
   };
 
+  const handleLocationChange = (locationData: any) => {
+    setLocationData(locationData);
+    setEditData(prev => ({
+      ...prev,
+      location: locationData.address || locationData.city,
+      coordinates: {
+        lat: locationData.lat,
+        lng: locationData.lng,
+      },
+    }));
+  };
+
+  const handleLocationInputChange = (value: string) => {
+    setLocationInputValue(value);
+    // Only react to clearing: if input is empty, mark location as empty and clear coordinates
+    if (!value.trim()) {
+      setLocationData(null);
+      setEditData(prev => ({
+        ...prev,
+        location: '',
+        coordinates: undefined,
+      }));
+    }
+  };
+
   if (isLoading) {
     return (
       <ClientDashboardLayout title="Profile" subtitle="Loading your profile...">
@@ -168,7 +212,7 @@ const ClientProfile = () => {
   const profileCompletion = [
     clientData.name ? 1 : 0,
     clientData.mobileNumber ? 1 : 0,
-    clientData.address?.street ? 1 : 0
+    clientData.location ? 1 : 0
   ].reduce((sum, field) => sum + field, 0);
 
   const completionPercentage = Math.round((profileCompletion / 3) * 100);
@@ -195,7 +239,7 @@ const ClientProfile = () => {
                         const currentCompletion = [
                           editData.name ? 1 : 0,
                           editData.mobileNumber ? 1 : 0,
-                          editData.address?.street ? 1 : 0
+                          editData.location ? 1 : 0
                         ].reduce((sum, field) => sum + field, 0);
                         return Math.round((currentCompletion / 3) * 100);
                       })()}% Complete
@@ -243,7 +287,7 @@ const ClientProfile = () => {
                     const currentCompletion = [
                       editData.name ? 1 : 0,
                       editData.mobileNumber ? 1 : 0,
-                      editData.address?.street ? 1 : 0
+                      editData.location ? 1 : 0
                     ].reduce((sum, field) => sum + field, 0);
                     return `${currentCompletion}/3 fields completed`;
                   })()}
@@ -257,7 +301,7 @@ const ClientProfile = () => {
                       const currentCompletion = [
                         editData.name ? 1 : 0,
                         editData.mobileNumber ? 1 : 0,
-                        editData.address?.street ? 1 : 0
+                        editData.location ? 1 : 0
                       ].reduce((sum, field) => sum + field, 0);
                       return Math.round((currentCompletion / 3) * 100);
                     })()}%` 
@@ -269,7 +313,7 @@ const ClientProfile = () => {
                   const currentCompletion = [
                     editData.name ? 1 : 0,
                     editData.mobileNumber ? 1 : 0,
-                    editData.address?.street ? 1 : 0
+                    editData.location ? 1 : 0
                   ].reduce((sum, field) => sum + field, 0);
                   
                   if (currentCompletion === 3) {
@@ -342,96 +386,42 @@ const ClientProfile = () => {
             </CardContent>
           </Card>
 
-          {/* Contact & Location */}
+          {/* Location Selection */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MapPin className="h-5 w-5 text-green-600" />
-                <span>Location & Contact</span>
+                <span>Location</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">General Location</Label>
-                {isEditing ? (
-                  <Input
-                    value={editData.location || ''}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Enter your general location"
-                    className="mt-1"
-                  />
-                ) : (
-                  <p className="mt-1 text-gray-900">
-                    {clientData.location || <span className="text-gray-400 italic">Not provided</span>}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Street Address</Label>
-                {isEditing ? (
-                  <Input
-                    value={editData.address?.street || ''}
-                    onChange={(e) => handleAddressChange('street', e.target.value)}
-                    placeholder="Enter street address"
-                    className="mt-1"
-                  />
-                ) : (
-                  <p className="mt-1 text-gray-900">
-                    {clientData.address?.street || <span className="text-gray-400 italic">Not provided</span>}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">City</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.address?.city || ''}
-                      onChange={(e) => handleAddressChange('city', e.target.value)}
-                      placeholder="City"
-                      className="mt-1"
-                    />
-                  ) : (
+            <CardContent>
+              {isEditing ? (
+                <LocationSelector
+                  value={locationInputValue}
+                  onChange={handleLocationChange}
+                  onInputChange={handleLocationInputChange}
+                  label="Select Your Location"
+                  placeholder="Search for your city or area"
+                  required={true}
+                />
+              ) : (
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Current Location</Label>
                     <p className="mt-1 text-gray-900">
-                      {clientData.address?.city || <span className="text-gray-400 italic">-</span>}
+                      {clientData.location || <span className="text-gray-400 italic">Not provided</span>}
                     </p>
+                  </div>
+                  {clientData.coordinates && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Coordinates</Label>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {clientData.coordinates.lat.toFixed(6)}, {clientData.coordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
                   )}
                 </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">State</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.address?.state || ''}
-                      onChange={(e) => handleAddressChange('state', e.target.value)}
-                      placeholder="State"
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="mt-1 text-gray-900">
-                      {clientData.address?.state || <span className="text-gray-400 italic">-</span>}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">ZIP Code</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.address?.zipCode || ''}
-                      onChange={(e) => handleAddressChange('zipCode', e.target.value)}
-                      placeholder="ZIP"
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="mt-1 text-gray-900">
-                      {clientData.address?.zipCode || <span className="text-gray-400 italic">-</span>}
-                    </p>
-                  )}
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
