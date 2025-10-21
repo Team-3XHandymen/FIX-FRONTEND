@@ -213,3 +213,10 @@ Collaborator name:Sewwandi
 Date: 20/10/25
 Commit msg: "Recent messages"
 Changes made: • Fixed recent msgs on the client and handyman dashboards
+
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 21/10/25
+Commit msg: "Attempted to improve the recent msgs component in the dashboard"
+Changes made: 
+    •  -
