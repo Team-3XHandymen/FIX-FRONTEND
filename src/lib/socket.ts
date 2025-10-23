@@ -26,7 +26,8 @@ class SocketService {
     }
 
     try {
-      this.socket = io('http://localhost:3001', {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://fixfinder-backend-zrn7.onrender.com';
+      this.socket = io(socketUrl, {
         transports: ['websocket'],
         timeout: 20000,
       });
