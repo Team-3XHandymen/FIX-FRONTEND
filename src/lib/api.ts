@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration - Load from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://fix-backend-sewwandi.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://fixfinder-backend-zrn7.onrender.com/api';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000');
 const NODE_ENV = import.meta.env.VITE_NODE_ENV || 'development';
 
