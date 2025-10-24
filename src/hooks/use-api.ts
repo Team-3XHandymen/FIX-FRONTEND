@@ -80,8 +80,11 @@ export const useMyBookings = (user: any) => {
       console.log('Fetching bookings for user:', user.id);
       
       try {
-        // Create a custom API call with proper headers
-        const response = await fetch('/api/bookings/my', {
+        // Use the configured API base URL instead of relative path
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://fixfinder-backend-zrn7.onrender.com/api';
+        console.log('useMyBookings - API_BASE_URL:', API_BASE_URL);
+        console.log('useMyBookings - Full URL:', `${API_BASE_URL}/bookings/my`);
+        const response = await fetch(`${API_BASE_URL}/bookings/my`, {
           headers: {
             'Content-Type': 'application/json',
             'X-User-ID': user.id,

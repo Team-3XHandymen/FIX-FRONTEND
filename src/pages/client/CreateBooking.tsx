@@ -134,7 +134,10 @@ const CreateBooking: React.FC = () => {
         attachments: formData.attachments
       };
 
-      const response = await fetch('/api/bookings', {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://fixfinder-backend-zrn7.onrender.com/api';
+      console.log('CreateBooking - API_BASE_URL:', API_BASE_URL);
+      console.log('CreateBooking - Full URL:', `${API_BASE_URL}/bookings`);
+      const response = await fetch(`${API_BASE_URL}/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
