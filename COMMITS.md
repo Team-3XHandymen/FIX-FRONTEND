@@ -220,3 +220,24 @@ Date: 21/10/25
 Commit msg: "Attempted to improve the recent msgs component in the dashboard"
 Changes made: 
     •  -
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 22/10/25
+Commit msg: "Deployed the frontend"
+Changes made: 
+    •  Prepared the frontend for the deployment 
+    •  Deployed on Netlify
+    •  Attempted to deploy the backend as well but failed
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 23/10/25
+Commit msg: "Backend Deployment"
+Changes made: 
+    •  Was able to deploy the Backend on render after solving a node definition not found error.
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 24/10/25
+Commit msg: "Cors error and BaseUrl fix"
+Changes made: 
+    •  Fixed an error on UseMybookings hook in the frontend
+    •  Fixed CreateBooking component.

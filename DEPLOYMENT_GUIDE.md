@@ -13,6 +13,7 @@ You need to set the following environment variables in your Netlify dashboard:
 ```
 VITE_API_BASE_URL=https://fixfinder-backend-zrn7.onrender.com/api
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 VITE_API_TIMEOUT=10000
 VITE_NODE_ENV=production
 ```
@@ -24,6 +25,7 @@ Create a `.env` file in the root directory:
 ```env
 VITE_API_BASE_URL=http://localhost:3001/api
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 VITE_API_TIMEOUT=10000
 VITE_NODE_ENV=development
 ```
@@ -43,6 +45,31 @@ MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=production
 ```
 
+## Google Maps API Configuration
+
+### Setting up Google Maps API for Production
+
+1. **Google Cloud Console Setup**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Select your project
+   - Go to "APIs & Services" → "Credentials"
+   - Edit your API key
+
+2. **Configure API Restrictions**:
+   - Under "Application restrictions", select "HTTP referrers (web sites)"
+   - Add these referrers:
+     ```
+     https://fixfinder-frontend.netlify.app/*
+     https://fixfinder-frontend.netlify.app
+     http://localhost:5173/*
+     http://localhost:8080/*
+     ```
+
+3. **Enable Required APIs**:
+   - Maps JavaScript API
+   - Places API
+   - Geocoding API
+
 ## Troubleshooting
 
 ### Common Issues
@@ -50,6 +77,7 @@ NODE_ENV=production
 1. **CORS Errors**: Make sure your frontend URL is included in the backend's CORS configuration
 2. **Environment Variables**: Ensure all required environment variables are set in both frontend and backend
 3. **API Base URL**: Verify that the API base URL points to your deployed backend
+4. **Google Maps API Errors**: Check that your production domain is added to the API key restrictions
 
 ### Debug Steps
 
