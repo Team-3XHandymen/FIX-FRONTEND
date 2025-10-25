@@ -350,7 +350,7 @@ export class ChatAPI {
 
   // Get all chats for a user
   static async getUserChats(userId: string, userType: string) {
-    const response = await api.get(`/chat/user/${userId}?userType=${userType}`);
+    const response = await api.get(`/chat/user?userId=${userId}&userType=${userType}`);
     return response.data;
   }
 }

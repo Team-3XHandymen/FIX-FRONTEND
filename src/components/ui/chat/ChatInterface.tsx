@@ -51,6 +51,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             console.log('💬 Message already exists, skipping duplicate');
             return prev;
           }
+          
+          // If this is a message from the current user, don't add it again
+          // (it was already added locally for instant feedback)
+          if (message.senderId === currentUserId) {
+            console.log('💬 Skipping own message from WebSocket');
+            return prev;
+          }
+          
           console.log('💬 Adding new message to state, total messages:', prev.length + 1);
           return [...prev, message];
         });
