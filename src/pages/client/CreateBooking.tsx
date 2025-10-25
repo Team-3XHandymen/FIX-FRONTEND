@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Wrench, User, FileText, MapPin, Calendar, Clock, Paperclip, CheckCircle } from 'lucide-react';
+import { Wrench, User, FileText, MapPin, Calendar, Clock, Paperclip, CheckCircle, Home } from 'lucide-react';
 import ClientDashboardLayout from '@/components/client/ClientDashboardLayout';
+import { LocationSelector } from '@/components/ui/location-selector';
+import { ClientAPI } from '@/lib/api';
 
 interface Service {
   _id: string;
@@ -44,6 +46,38 @@ interface FormData {
   attachments: File[];
 }
 
+interface ClientData {
+  _id: string;
+  userId: string;
+  username: string;
+  email: string;
+  name?: string;
+  mobileNumber?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  location?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  rating?: number;
+  preferences?: {
+    preferredServices?: string[];
+    preferredTimes?: string[];
+    [key: string]: any;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 const CreateBooking: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -65,6 +99,42 @@ const CreateBooking: React.FC = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [bookingId, setBookingId] = useState<string>('');
+  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [isLoadingClientData, setIsLoadingClientData] = useState(true);
+  const [locationData, setLocationData] = useState<{
+    location: string;
+    coordinates?: { lat: number; lng: number };
+  } | null>(null);
+  const [locationInputValue, setLocationInputValue] = useState<string>('');
+
+  // Fetch client data to get saved location
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoadingClientData(true);
+        const response = await ClientAPI.getClientByUserId(user.id);
+        setClientData(response.data);
+        
+        // Initialize location data if available
+        if (response.data.location) {
+          setLocationData({
+            location: response.data.location,
+            coordinates: response.data.coordinates
+          });
+          setLocationInputValue(response.data.location);
+        }
+      } catch (error) {
+        console.error('Error fetching client data:', error);
+        // Continue without client data if fetch fails
+      } finally {
+        setIsLoadingClientData(false);
+      }
+    };
+
+    fetchClientData();
+  }, [user]);
 
   // Redirect if no service or professional data
   useEffect(() => {
@@ -89,6 +159,53 @@ const CreateBooking: React.FC = () => {
         ...prev,
         [field]: value
       }));
+    }
+  };
+
+  const handleLocationChange = (locationData: any) => {
+    setLocationData(locationData);
+    setFormData(prev => ({
+      ...prev,
+      location: {
+        address: locationData.address || locationData.city || '',
+        coordinates: {
+          lat: locationData.lat,
+          lng: locationData.lng
+        }
+      }
+    }));
+  };
+
+  const handleLocationInputChange = (value: string) => {
+    setLocationInputValue(value);
+    setFormData(prev => ({
+      ...prev,
+      location: { ...prev.location, address: value }
+    }));
+  };
+
+  const handleUseMyAddress = () => {
+    if (clientData?.location) {
+      const address = clientData.location;
+      const coordinates = clientData.coordinates;
+      
+      setLocationInputValue(address);
+      setLocationData({
+        location: address,
+        coordinates: coordinates
+      });
+      setFormData(prev => ({
+        ...prev,
+        location: {
+          address: address,
+          coordinates: coordinates
+        }
+      }));
+      
+      toast({
+        title: "Address Applied",
+        description: "Your saved address has been applied to the service location.",
+      });
     }
   };
 
@@ -181,7 +298,7 @@ const CreateBooking: React.FC = () => {
 
   const isFormValid = () => {
     return formData.description.trim() !== "" && 
-           formData.location.address.trim() !== "" && 
+           (formData.location.address.trim() !== "" || locationInputValue.trim() !== "") && 
            formData.scheduledDate !== "" && 
            formData.scheduledTime !== "";
   };
@@ -250,21 +367,31 @@ const CreateBooking: React.FC = () => {
 
               {/* Location */}
               <div>
-                <Label htmlFor="address" className="text-sm font-medium text-gray-700">
-                  Service Location *
-                </Label>
-                <div className="mt-1 relative">
-                  <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="address"
-                    type="text"
-                    value={formData.location.address}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Enter the address where you need the service..."
-                    className="pl-10"
-                    required
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Service Location *
+                  </Label>
+                  {clientData?.location && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUseMyAddress}
+                      className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                    >
+                      <Home className="h-4 w-4 mr-1" />
+                      Use My Address
+                    </Button>
+                  )}
                 </div>
+                <LocationSelector
+                  value={locationInputValue}
+                  onChange={handleLocationChange}
+                  onInputChange={handleLocationInputChange}
+                  label=""
+                  placeholder="Enter the address where you need the service..."
+                  required={true}
+                />
               </div>
 
               {/* Date and Time */}
@@ -410,7 +537,7 @@ const CreateBooking: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-gray-600">Location:</span>
-                  <p className="mt-1 text-gray-900">{formData.location.address}</p>
+                  <p className="mt-1 text-gray-900">{locationInputValue || formData.location.address}</p>
                 </div>
                 {formData.attachments.length > 0 && (
                   <div>

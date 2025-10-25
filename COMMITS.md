@@ -247,4 +247,7 @@ Date: 25/10/25
 Commit msg: "Duplicate msg issue fixed"
 Changes made: 
     •  Msgs appeared twice in the chat, because msg was added to local state immediately for instand feedback and the same msg was recieved again via websocket broadcast. As a solution, modified ChatInterface.tsx to skip websocket msgs from the current user. 
-    •  
+Commit msg: "Location selector component added to the create booking page"
+Changes made: 
+    •  We had just a text box to fill the service location, instead of that the google maps location selector was integrated on the create booking page. 
+    •  Also added a button for client's to select their already registered address as the service location. It fetches the client's saved location from their profile.
