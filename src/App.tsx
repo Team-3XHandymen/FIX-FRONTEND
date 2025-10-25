@@ -15,6 +15,9 @@ import ClientServiceHistory from "./pages/client/ClientServiceHistory";
 import ClientUpcomingBookings from "./pages/client/ClientUpcomingBookings";
 import ClientReviews from "./pages/client/ClientReviews";
 import ClientPaymentBilling from "./pages/client/ClientPaymentBilling";
+import ClientPayment from "./pages/client/ClientPayment";
+import { PaymentSuccess } from "./pages/PaymentSuccess";
+import { PaymentCancel } from "./pages/PaymentCancel";
 import ClientAccountSettings from "./pages/client/ClientAccountSettings";
 import HandymanDashboard from "./pages/handyman/HandymanDashboard";
 import HandymanSchedule from "./pages/handyman/HandymanSchedule";
@@ -60,6 +63,9 @@ const App = () => (
           <Route path="/client/upcoming-bookings" element={<ProtectedClientRoute><ClientUpcomingBookings /></ProtectedClientRoute>} />
           <Route path="/client/reviews" element={<ProtectedClientRoute><ClientReviews /></ProtectedClientRoute>} />
           <Route path="/client/payment-billing" element={<ProtectedClientRoute><ClientPaymentBilling /></ProtectedClientRoute>} />
+          <Route path="/client/payment/success" element={<PaymentSuccess />} />
+          <Route path="/client/payment/cancel" element={<PaymentCancel />} />
+          <Route path="/client/payment/:bookingId" element={<ProtectedClientRoute><ClientPayment /></ProtectedClientRoute>} />
           <Route path="/client/account-settings" element={<ProtectedClientRoute><ClientAccountSettings /></ProtectedClientRoute>} />
           <Route path="/client/complete-profile" element={<ProtectedClientRoute><CompleteProfile /></ProtectedClientRoute>} />
           <Route path="/client/chat/:bookingId" element={<ProtectedClientRoute><ClientChatRoom /></ProtectedClientRoute>} />

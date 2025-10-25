@@ -10,9 +10,10 @@ import {
 import StatsCards from "@/components/handyman/dashboard/StatsCards";
 import ClientRequests from "@/components/handyman/dashboard/ClientRequests";
 import TodaySchedule from "@/components/handyman/dashboard/TodaySchedule";
+import { ProviderPaymentSetup } from "@/components/payments/ProviderPaymentSetup";
 
 const HandymanDashboard = () => {
-  const [tab, setTab] = useState<"requests" | "today">("requests");
+  const [tab, setTab] = useState<"requests" | "today" | "payments">("requests");
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Callback to refresh all components when booking status changes
@@ -33,12 +34,18 @@ const HandymanDashboard = () => {
           <TabsTrigger value="today" className="px-6 py-2 font-semibold">
             Today's Schedule
           </TabsTrigger>
+          <TabsTrigger value="payments" className="px-6 py-2 font-semibold">
+            💳 Payments
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="requests">
           <ClientRequests key={refreshKey} onStatusChange={handleBookingStatusChange} />
         </TabsContent>
         <TabsContent value="today">
           <TodaySchedule />
+        </TabsContent>
+        <TabsContent value="payments">
+          <ProviderPaymentSetup />
         </TabsContent>
       </Tabs>
     </HandymanDashboardLayout>
