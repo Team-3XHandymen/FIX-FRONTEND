@@ -10,8 +10,6 @@ import {
 import StatsCards from "@/components/handyman/dashboard/StatsCards";
 import ClientRequests from "@/components/handyman/dashboard/ClientRequests";
 import TodaySchedule from "@/components/handyman/dashboard/TodaySchedule";
-import RecentJobs from "@/components/handyman/dashboard/RecentJobs";
-import RecentMessages from "@/components/handyman/dashboard/RecentMessages";
 
 const HandymanDashboard = () => {
   const [tab, setTab] = useState<"requests" | "today">("requests");
@@ -27,33 +25,22 @@ const HandymanDashboard = () => {
     <HandymanDashboardLayout title="Dashboard">
       <StatsCards />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Main Content - Client Requests and Today's Schedule */}
-        <div className="lg:col-span-2">
-          <Tabs value={tab} onValueChange={(val) => setTab(val as typeof tab)} className="mb-8">
-            <TabsList className="bg-white border rounded-lg shadow p-0">
-              <TabsTrigger value="requests" className="px-6 py-2 font-semibold">
-                Client Requests
-              </TabsTrigger>
-              <TabsTrigger value="today" className="px-6 py-2 font-semibold">
-                Today's Schedule
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="requests">
-              <ClientRequests key={refreshKey} onStatusChange={handleBookingStatusChange} />
-            </TabsContent>
-            <TabsContent value="today">
-              <TodaySchedule />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Sidebar - Recent Messages above Recent Jobs */}
-        <div className="lg:col-span-1 space-y-6">
-          <RecentMessages />
-          <RecentJobs />
-        </div>
-      </div>
+      <Tabs value={tab} onValueChange={(val) => setTab(val as typeof tab)} className="mb-8">
+        <TabsList className="bg-white border rounded-lg shadow p-0">
+          <TabsTrigger value="requests" className="px-6 py-2 font-semibold">
+            Client Requests
+          </TabsTrigger>
+          <TabsTrigger value="today" className="px-6 py-2 font-semibold">
+            Today's Schedule
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="requests">
+          <ClientRequests key={refreshKey} onStatusChange={handleBookingStatusChange} />
+        </TabsContent>
+        <TabsContent value="today">
+          <TodaySchedule />
+        </TabsContent>
+      </Tabs>
     </HandymanDashboardLayout>
   );
 };

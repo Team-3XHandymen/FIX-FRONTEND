@@ -247,4 +247,21 @@ Date: 25/10/25
 Commit msg: "Duplicate msg issue fixed"
 Changes made: 
     •  Msgs appeared twice in the chat, because msg was added to local state immediately for instand feedback and the same msg was recieved again via websocket broadcast. As a solution, modified ChatInterface.tsx to skip websocket msgs from the current user. 
-    •  
+
+Commit msg: "Location selector component added to the create booking page"
+Changes made: 
+    •  We had just a text box to fill the service location, instead of that the google maps location selector was integrated on the create booking page. 
+    •  Also added a button for client's to select their already registered address as the service location. It fetches the client's saved location from their profile.
+
+Commit msg: "Client/Handyman Dashboard Restructured and self booking prevention implemented"
+Changes made: 
+    •  Changed the layout of the Client Dashboard to have 3 categories of bookings : Action required, Ongoing, Recent. 
+    •  Action required : Shows urgent bookings that require payment confirmation or completion confirmation
+    •  Ongoing Bookings : Shows all non completed bookings.
+    •  Recent Bookings : Shows all recently completed bookings
+    •  Changed the layout of the Handyman Dashboard to have 3 categories of bookings : Action required, Ongoing, Recent. 
+    •  Action required : Shows urgent bookings that require acceptance and work done confirmation
+    •  Ongoing Bookings : Shows all non completed bookings.
+    •  Recent Bookings : Shows all recently completed bookings.
+    •  Added user authentication to the select proffessionals page by using the useUser from clerk to access the current user's ID. Then added filtering logic in the fetchprofessionals function to exclude the current user's own handyman profile.
+    

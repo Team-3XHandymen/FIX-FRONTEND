@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useUser } from '@clerk/clerk-react';
 import ClientDashboardLayout from "@/components/client/ClientDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter } from "lucide-react";
@@ -38,6 +39,7 @@ type SortOption = 'distance' | 'rating' | 'experience' | null;
 const SelectProfessional = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useUser();
   const service = location.state?.service;
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
@@ -141,8 +143,13 @@ const SelectProfessional = () => {
         const response = await HandymanAPI.getServiceProvidersByServiceId(service._id);
         
         if (response.success) {
-          setProfessionals(response.data);
-          setOriginalProfessionals(response.data);
+          // Filter out the current user's own handyman profile to prevent self-booking
+          const filteredProfessionals = response.data.filter((professional: Professional) => {
+            return professional.userId !== user?.id;
+          });
+          
+          setProfessionals(filteredProfessionals);
+          setOriginalProfessionals(filteredProfessionals);
         } else {
           setError(response.message || "Failed to fetch professionals");
         }
@@ -155,7 +162,7 @@ const SelectProfessional = () => {
     };
 
     fetchProfessionals();
-  }, [service?._id]);
+  }, [service?._id, user?.id]);
 
   if (loading) {
     return (
