@@ -17,7 +17,7 @@ export const PaymentSuccess: React.FC = () => {
   const bookingId = searchParams.get('booking_id');
 
   useEffect(() => {
-    if (sessionId && bookingId) {
+    if (sessionId && bookingId && user && getToken) {
       fetchPaymentDetails();
     } else {
       setIsLoading(false);
@@ -31,7 +31,8 @@ export const PaymentSuccess: React.FC = () => {
       const token = await getToken();
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
       
-      const response = await fetch(`${API_BASE_URL}/stripe/payment/booking/${bookingId}`, {
+      // First, try to get existing payment details
+      let response = await fetch(`${API_BASE_URL}/stripe/payment/booking/${bookingId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -40,6 +41,44 @@ export const PaymentSuccess: React.FC = () => {
           'X-User-Type': 'client',
         },
       });
+
+      // If payment doesn't exist (404), try to create it manually using session data
+      if (!response.ok && response.status === 404) {
+        console.log('Payment record not found, attempting to create manually...');
+        
+        if (sessionId) {
+          // Create payment record manually using session data
+          const createResponse = await fetch(`${API_BASE_URL}/stripe/create-manual-payment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'X-User-ID': user.id,
+              'X-User-Type': 'client',
+            },
+            body: JSON.stringify({
+              bookingId,
+              sessionId,
+            }),
+          });
+
+          if (createResponse.ok) {
+            console.log('✅ Manual payment record created successfully');
+            // Now fetch the payment details again
+            response = await fetch(`${API_BASE_URL}/stripe/payment/booking/${bookingId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-User-ID': user.id,
+                'X-User-Type': 'client',
+              },
+            });
+          } else {
+            console.error('Failed to create manual payment record');
+          }
+        }
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
