@@ -213,12 +213,12 @@ const ClientDashboard = () => {
       }));
   }, [bookingsResponse]);
 
-  // Categorize bookings by status
+  // Categorize bookings by status according to wireframe layout
   const categorizedBookings = useMemo(() => {
     const categorized = {
-      actionRequired: [] as any[], // Bookings that need client action
-      viewOnly: [] as any[], // Bookings just for viewing
-      cancelled: [] as any[]
+      actionRequired: [] as any[], // Bookings that need client action (accepted, done)
+      ongoing: [] as any[], // Ongoing bookings (pending, paid - non-completed)
+      recent: [] as any[] // Recent/completed bookings (rejected, completed)
     };
 
     console.log('Client Dashboard - Processing bookings:', processedBookings.map(b => ({ id: b._id, status: b.status })));
@@ -227,27 +227,30 @@ const ClientDashboard = () => {
       switch (booking.status) {
         case 'accepted':
         case 'done':
+          // These need client action (payment confirmation or completion confirmation)
           categorized.actionRequired.push(booking);
           break;
         case 'pending':
         case 'paid':
-        case 'rejected':
-          // Only include non-completed bookings in viewOnly
-          categorized.viewOnly.push(booking);
+          // These are ongoing bookings (not completed yet)
+          categorized.ongoing.push(booking);
           break;
+        case 'rejected':
         case 'completed':
-          // Completed bookings go to service history, not here
+          // These are recent/completed bookings
+          categorized.recent.push(booking);
           break;
         default:
-          // Add any other statuses to view only
-          categorized.viewOnly.push(booking);
+          // Add any other statuses to ongoing
+          categorized.ongoing.push(booking);
           break;
       }
     });
 
     console.log('Client Dashboard - Categorized results:', {
       actionRequired: categorized.actionRequired.map(b => ({ id: b._id, status: b.status })),
-      viewOnly: categorized.viewOnly.map(b => ({ id: b._id, status: b.status }))
+      ongoing: categorized.ongoing.map(b => ({ id: b._id, status: b.status })),
+      recent: categorized.recent.map(b => ({ id: b._id, status: b.status }))
     });
 
     return categorized;
@@ -257,8 +260,8 @@ const ClientDashboard = () => {
   console.log('Processed bookings count:', processedBookings.length);
   console.log('Categorized bookings:', {
     actionRequired: categorizedBookings.actionRequired.length,
-    viewOnly: categorizedBookings.viewOnly.length,
-    cancelled: categorizedBookings.cancelled.length
+    ongoing: categorizedBookings.ongoing.length,
+    recent: categorizedBookings.recent.length
   });
 
   // Filter services based on search
@@ -609,112 +612,205 @@ const ClientDashboard = () => {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Action Required and Recent Messages side-by-side */}
+          <div className="space-y-8">
+            {/* Top Section: Action Required/Ongoing Bookings and Recent Messages side-by-side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column: Action Required Bookings OR Ongoing Bookings */}
               <div className="lg:col-span-1">
-                {/* Action Required Bookings */}
-            {categorizedBookings.actionRequired.length > 0 && (
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-800">Action Required</h3>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-orange-50 border border-orange-200 rounded-full">
-                    <svg className="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                    <span className="text-sm font-medium text-orange-700">{categorizedBookings.actionRequired.length} booking(s) need your attention</span>
-                  </div>
-                </div>
-                
-                <div className="grid gap-4">
-                  {categorizedBookings.actionRequired.map(booking => (
-                    <div key={booking._id} 
-                      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                              <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(booking.status)}`}>
-                                {getStatusDisplayText(booking.status)}
-                              </span>
-                            </div>
-                            <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
-                            
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500">Provider:</span>
-                                <span className="ml-2 font-medium text-gray-900">{booking.providerName || 'Unknown Provider'}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Location:</span>
-                                <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Scheduled:</span>
-                                <span className="ml-2 font-medium text-gray-900">{booking.displayDate}, {booking.displayTime}</span>
-                              </div>
-                              {booking.fee && (
-                                <div>
-                                  <span className="text-gray-500">Fee:</span>
-                                  <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="text-xs text-gray-500">
-                            ID: {booking._id}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {booking.status !== 'completed' && booking.status !== 'rejected' && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleChat(booking);
-                                }} 
-                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                              >
-                                <MessageSquare className="mr-1" size={16} /> Chat
-                              </Button>
-                            )}
-                            <Button
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
-                              onClick={() => handleBookingClick(booking)}
-                            >
-                              {booking.status === 'accepted' ? 'Confirm Payment' : 'Confirm Completion'}
-                            </Button>
-                          </div>
-                        </div>
+                {categorizedBookings.actionRequired.length > 0 ? (
+                  // Show Action Required when there are bookings needing action
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-800">Action Required</h3>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-orange-50 border border-orange-200 rounded-full">
+                        <svg className="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <span className="text-sm font-medium text-orange-700">{categorizedBookings.actionRequired.length} booking(s) need your attention</span>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    
+                    <div className="space-y-4">
+                      {categorizedBookings.actionRequired.map(booking => (
+                        <div key={booking._id} 
+                          className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+                        >
+                          <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                                  <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(booking.status)}`}>
+                                    {getStatusDisplayText(booking.status)}
+                                  </span>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
+                                
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-gray-500">Provider:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{booking.providerName || 'Unknown Provider'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Location:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Scheduled:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{booking.displayDate}, {booking.displayTime}</span>
+                                  </div>
+                                  {booking.fee && (
+                                    <div>
+                                      <span className="text-gray-500">Fee:</span>
+                                      <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                              <div className="text-xs text-gray-500">
+                                ID: {booking._id}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChat(booking);
+                                  }} 
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                >
+                                  <MessageSquare className="mr-1" size={16} /> Chat
+                                </Button>
+                                <Button
+                                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
+                                  onClick={() => handleBookingClick(booking)}
+                                >
+                                  {booking.status === 'accepted' ? 'Confirm Payment' : 'Confirm Completion'}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : categorizedBookings.ongoing.length > 0 ? (
+                  // Show Ongoing Bookings when there are no Action Required bookings
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-800">Ongoing Bookings</h3>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {categorizedBookings.ongoing.map(booking => (
+                        <div key={booking._id} 
+                          className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+                        >
+                          <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                  <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(booking.status)}`}>
+                                    {getStatusDisplayText(booking.status)}
+                                  </span>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
+                                
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-gray-500">Provider:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{booking.providerName || 'Unknown Provider'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Location:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{booking.location.address}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Scheduled:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{booking.displayDate}, {booking.displayTime}</span>
+                                  </div>
+                                  {booking.fee && (
+                                    <div>
+                                      <span className="text-gray-500">Fee:</span>
+                                      <span className="ml-2 font-bold text-green-600">${booking.fee}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                              <div className="text-xs text-gray-500">
+                                ID: {booking._id}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                {booking.status !== 'completed' && booking.status !== 'rejected' && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleChat(booking);
+                                    }} 
+                                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  >
+                                    <MessageSquare className="mr-1" size={16} /> Chat
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="outline"
+                                  className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  onClick={() => handleBookingClick(booking)}
+                                >
+                                  View Details
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  // Show empty state when no bookings
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <p className="text-gray-500 mb-2">No active bookings</p>
+                    <p className="text-sm text-gray-400">Start by booking a service from our catalog</p>
+                    <Button 
+                      onClick={() => navigate("/client/service-catalog")}
+                      className="mt-3 bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      Book a Service
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-              </div>
+
+              {/* Right Column: Recent Messages */}
               <div className="lg:col-span-1">
                 <RecentMessages />
               </div>
             </div>
 
-            {/* Recent Jobs */}
-            {categorizedBookings.viewOnly.length > 0 && (
-              <div className="space-y-4 mb-6">
+            {/* Middle Section: Ongoing Bookings (only show if Action Required section is displayed) */}
+            {categorizedBookings.actionRequired.length > 0 && categorizedBookings.ongoing.length > 0 && (
+              <div className="space-y-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-800">Recent Jobs</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Ongoing Bookings</h3>
                 </div>
                 
-                <div className="grid gap-4">
-                  {categorizedBookings.viewOnly.map(booking => (
+                <div className="space-y-4">
+                  {categorizedBookings.ongoing.map(booking => (
                     <div key={booking._id} 
                       className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
                     >
@@ -787,33 +883,27 @@ const ClientDashboard = () => {
               </div>
             )}
 
-            {/* Cancelled Bookings */}
-            {categorizedBookings.cancelled.length > 0 && (
+            {/* Bottom Section: Recent Bookings (Completed) */}
+            {categorizedBookings.recent.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-2 h-8 bg-red-500 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-800">Cancelled Bookings</h3>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-red-50 border border-red-200 rounded-full">
-                    <svg className="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                    <span className="text-sm font-medium text-red-700">{categorizedBookings.cancelled.length} cancelled booking(s)</span>
-                  </div>
+                  <div className="w-2 h-8 bg-green-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-800">Recent Bookings</h3>
                 </div>
                 
-                <div className="grid gap-4">
-                  {categorizedBookings.cancelled.map(booking => (
+                <div className="space-y-4">
+                  {categorizedBookings.recent.map(booking => (
                     <div key={booking._id} 
-                      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden opacity-75"
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
                     >
                       <div className="p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                               <h4 className="font-semibold text-gray-900">{booking.serviceCategory || 'Service'}</h4>
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
-                                CANCELLED
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(booking.status)}`}>
+                                {getStatusDisplayText(booking.status)}
                               </span>
                             </div>
                             <p className="text-gray-600 text-sm mb-3">{booking.description}</p>
