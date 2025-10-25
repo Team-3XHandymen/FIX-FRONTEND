@@ -241,3 +241,10 @@ Commit msg: "Cors error and BaseUrl fix"
 Changes made: 
     •  Fixed an error on UseMybookings hook in the frontend
     •  Fixed CreateBooking component.
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 25/10/25
+Commit msg: "Duplicate msg issue fixed"
+Changes made: 
+    •  Msgs appeared twice in the chat, because msg was added to local state immediately for instand feedback and the same msg was recieved again via websocket broadcast. As a solution, modified ChatInterface.tsx to skip websocket msgs from the current user. 
+    •  
