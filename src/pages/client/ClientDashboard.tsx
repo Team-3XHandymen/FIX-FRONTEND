@@ -689,9 +689,15 @@ const ClientDashboard = () => {
                                 </Button>
                                 <Button
                                   className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
-                                  onClick={() => handleBookingClick(booking)}
+                                  onClick={() => {
+                                    if (booking.status === 'accepted') {
+                                      navigate(`/client/payment/${booking._id}`);
+                                    } else {
+                                      handleBookingClick(booking);
+                                    }
+                                  }}
                                 >
-                                  {booking.status === 'accepted' ? 'Confirm Payment' : 'Confirm Completion'}
+                                  {booking.status === 'accepted' ? 'Pay Now' : 'Confirm Completion'}
                                 </Button>
                               </div>
                             </div>

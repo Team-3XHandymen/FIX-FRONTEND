@@ -1,0 +1,2 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://js.stripe.com https://connect-js.stripe.com; connect-src 'self' https://api.stripe.com https://connect-js.stripe.com https://*.stripe.com https://b.stripecdn.com https://connect.stripe.com; frame-src 'self' https://js.stripe.com https://connect.stripe.com; img-src 'self' https://*.stripe.com;

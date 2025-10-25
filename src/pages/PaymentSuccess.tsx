@@ -3,11 +3,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight } from 'lucide-react';
-import { StripeAPI } from '@/lib/api';
+import { useUser, useAuth } from '@clerk/clerk-react';
 
 export const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { getToken } = useAuth();
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,16 +22,33 @@ export const PaymentSuccess: React.FC = () => {
     } else {
       setIsLoading(false);
     }
-  }, [sessionId, bookingId]);
+  }, [sessionId, bookingId, user, getToken]);
 
   const fetchPaymentDetails = async () => {
     try {
-      if (!bookingId) return;
+      if (!bookingId || !user || !getToken) return;
 
-      const response = await StripeAPI.getPaymentByBookingId(bookingId);
+      const token = await getToken();
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+      
+      const response = await fetch(`${API_BASE_URL}/stripe/payment/booking/${bookingId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-User-ID': user.id,
+          'X-User-Type': 'client',
+        },
+      });
 
-      if (response.success) {
-        setPaymentDetails(response.data);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setPaymentDetails(result.data);
       }
     } catch (error) {
       console.error('Error fetching payment details:', error);
