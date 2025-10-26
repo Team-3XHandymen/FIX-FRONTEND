@@ -15,6 +15,7 @@ const ClientChatRoom: React.FC = () => {
         currentUserId={user?.id || ''}
         currentUserName={user?.fullName || user?.username || 'Client'}
         isOpen={true}
+        userType="client"
       />
     </ClientDashboardLayout>
   );

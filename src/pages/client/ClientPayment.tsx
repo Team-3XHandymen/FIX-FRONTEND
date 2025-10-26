@@ -232,40 +232,47 @@ const ClientPayment: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex justify-between items-center p-6 bg-gray-50 rounded-lg">
-                  <div>
-                    <h4 className="font-semibold text-lg">Service Fee</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {booking.serviceName} by {booking.providerName}
-                    </p>
+                {/* Payment Breakdown */}
+                <div className="bg-white border rounded-lg p-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Service Fee</span>
+                    <span className="font-semibold">${booking.fee.toFixed(2)}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold">${booking.fee.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Includes platform fee
-                    </p>
+                  <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Platform Fee (20%)</span>
+                      <span className="text-xs text-blue-600">(Processing & Support)</span>
+                    </div>
+                    <span className="font-semibold">${(booking.fee * 0.2).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">Total Amount</span>
+                      <span className="text-3xl font-bold text-primary">${(booking.fee * 1.2).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
 
                 <StripePaymentButton
                   bookingId={booking._id}
-                  amount={booking.fee}
+                  amount={booking.fee * 1.2}
                   onPaymentSuccess={handlePaymentSuccess}
                   onPaymentError={handlePaymentError}
                 />
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium mb-1">Secure Payment</p>
+                    <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Payment Breakdown</p>
                       <p>
-                        Your payment is processed securely by Stripe. 
-                        The provider will receive their payment after the service is completed.
+                        The service fee is ${booking.fee.toFixed(2)}. An additional 20% platform fee (${(booking.fee * 0.2).toFixed(2)}) 
+                        is added to cover processing costs and platform maintenance.
                       </p>
                     </div>
                   </div>
                 </div>
+
               </CardContent>
             </Card>
           )}

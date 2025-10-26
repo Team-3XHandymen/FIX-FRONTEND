@@ -14,7 +14,6 @@ import { useState } from "react";
 import { BookingsAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from '@clerk/clerk-react';
-import ChatInterface from "@/components/ui/chat/ChatInterface";
 
 interface Booking {
   _id: string;
@@ -368,27 +367,19 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
             Details
           </button>
           <button
-            onClick={() => setActiveTab('chat')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'chat'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            onClick={() => navigate(`/handyman/chat/${request._id}`)}
+            className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
           >
             Chat
           </button>
         </div>
 
         <div className="py-6 space-y-6">
-          {/* Chat Tab Content */}
+          {/* Chat Tab Content - Navigates to separate page */}
           {activeTab === 'chat' && (
-            <div className="mb-6">
-              <ChatInterface
-                bookingId={request._id}
-                currentUserId={user?.id || ''}
-                currentUserName={user?.username || user?.firstName || 'Handyman'}
-                isOpen={open}
-              />
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">Redirecting to chat...</p>
+              <p className="text-sm text-gray-500">If you are not redirected, click the Chat button above.</p>
             </div>
           )}
 

@@ -589,19 +589,12 @@ const CreateBooking: React.FC = () => {
               You can track your booking status in your dashboard.
             </p>
             
-            <div className="flex space-x-3 pt-4">
-                             <Button
-                 variant="outline"
-                 onClick={() => navigate('/client/dashboard', { state: { refreshBookings: true } })}
-                 className="flex-1"
-               >
-                 Go to Dashboard
-               </Button>
+            <div className="flex justify-center pt-4">
               <Button
-                onClick={() => navigate('/client/services')}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                onClick={() => navigate('/client/dashboard', { state: { refreshBookings: true } })}
+                className="bg-blue-600 hover:bg-blue-700 px-8"
               >
-                Book Another Service
+                Go to Dashboard
               </Button>
             </div>
           </div>

@@ -324,7 +324,7 @@ export const ProviderPaymentSetup: React.FC = () => {
                   Account Ready
                 </h3>
                 <div className="mt-2 text-sm text-green-700">
-                  <p>Your payment account is fully set up and ready to receive payments.</p>
+                  <p>Your payment account is fully set up and ready to receive payments. Check your earnings on the top of the dashboard.</p>
                 </div>
               </div>
             </div>

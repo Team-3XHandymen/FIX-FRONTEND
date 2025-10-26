@@ -299,3 +299,49 @@ Changes made:
     • Stripe Account Setup
     Issue: Handyman account showing as "disabled" despite completing requirements
     Solution: Added debug logging and refresh functionality to ProviderPaymentSetup.tsx
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 26/10/25
+Commit msg: "Improvements on the payment logic and chat interface"
+Changes made: 
+    •  Remove the view booking details button from the payment success page.
+    •  Implementing payment tracking for handymen, Api method added to the api.ts code 
+    •  Added payment earnings display to the component. Added state and fetch logic : ProviderPaymentsetup.tsx.
+    •  Added earnings summary display on the handyman dashboard
+    •  On the handyman dashboard (Payments tab), you’ll see:
+            Pending payment amount (large font)
+            Total earnings across all transactions
+            Transaction count
+            Payment account status
+    •  Replacing dummy values with real database values in the handyman dashboard metrics boxes.
+    •  Removed the payment display from ProviderPaymentSetup since those stats are in the upper cards
+    •  Now, since there is a platform fee of 20% that should be added to the agreed fee then that should be the payment amount. then that amount minus platform should be added to the total earnings of the handyman . Implemented this logic: Updated ClientPayment to calculate and display the total with the platform fee. Removed old info msgs since it didnt include the platform fee. 
+    •  Booking cards are updated to show the Created date and time. and to show the last actioned date and time. 
+    Client Dashboard (ClientDashboard.tsx):
+    Added date info to 4 cards (action required, ongoing, two in recent)
+    Date format: "Created: 12/25/2024 3:45:30 PM"
+    Sorts by category:
+    Action Required: by last action date (most recent first)
+    Ongoing: by scheduled date (soonest first)
+    Recent: by completion date (most recent first)
+    Handyman Dashboard (ClientRequests.tsx):
+    Added date info to 4 cards (action required, ongoing, middle ongoing, recent)
+    Same formatting as client dashboard
+    Same sorting logic
+    •  Removed "Book Another Service" button comes at the end of placing the booking.
+    •  ChatInterface (FIX-FRONTEND/src/components/ui/chat/ChatInterface.tsx) — Major update
+    Added userType prop
+    Shows booking details: other party name, role, service name, booking status
+    Mark as read: markMessagesAsRead() on open
+    Image upload: file selector with preview
+    Displays uploaded images in messages
+    Added booking details loading
+    2. Chat API (FIX-FRONTEND/src/lib/api.ts)
+    Added markMessagesAsRead(bookingId, userId, userType)
+    3. Chat Room Pages
+    FIX-FRONTEND/src/pages/client/ClientChatRoom.tsx — pass userType="client"
+    FIX-FRONTEND/src/pages/handyman/HandymanChatRoom.tsx — pass userType="provider"
+    •  Changed the "Chat" button to navigate to /handyman/chat/${request._id}.
+    Removed the ChatInterface component from the dialog.
+    Removed the unused ChatInterface import.
+Next steps: More Improvements needed for chat interface integrations

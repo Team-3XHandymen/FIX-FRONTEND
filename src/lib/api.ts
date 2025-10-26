@@ -353,6 +353,15 @@ export class ChatAPI {
     const response = await api.get(`/chat/user?userId=${userId}&userType=${userType}`);
     return response.data;
   }
+
+  // Mark messages as read
+  static async markMessagesAsRead(bookingId: string, userId: string, userType: string) {
+    const response = await api.post(`/chat/${bookingId}/mark-read`, {
+      userId,
+      userType
+    });
+    return response.data;
+  }
 }
 
 export class StripeAPI {
@@ -377,6 +386,12 @@ export class StripeAPI {
   // Get payment details by booking ID
   static async getPaymentByBookingId(bookingId: string) {
     const response = await api.get(`/stripe/payment/booking/${bookingId}`);
+    return response.data;
+  }
+
+  // Get all payments for current provider (handyman)
+  static async getMyPayments() {
+    const response = await api.get('/stripe/payments/my');
     return response.data;
   }
 

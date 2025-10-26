@@ -40,7 +40,11 @@ const RecentMessages: React.FC = () => {
         setLoading(true);
         const response = await ClientAPI.getUserChats(user.id, 'client');
         if (response.success) {
-          setRecentChats(response.data || []);
+          // Filter out chats with no unread messages
+          const chatsWithUnread = (response.data || []).filter(
+            (chat: RecentChat) => chat.unreadCount > 0
+          );
+          setRecentChats(chatsWithUnread);
         }
       } catch (error) {
         console.error('Error fetching recent chats:', error);

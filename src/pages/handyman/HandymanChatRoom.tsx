@@ -9,12 +9,13 @@ const HandymanChatRoom: React.FC = () => {
   const { user } = useUser();
 
   return (
-    <HandymanDashboardLayout title="Chat">
+    <HandymanDashboardLayout title="Chat" subtitle="Conversation">
       <ChatInterface
         bookingId={bookingId}
         currentUserId={user?.id || ''}
         currentUserName={user?.fullName || user?.username || 'Handyman'}
         isOpen={true}
+        userType="provider"
       />
     </HandymanDashboardLayout>
   );
