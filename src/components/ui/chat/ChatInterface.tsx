@@ -2,13 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../button';
 import { Input } from '../input';
 import { socketService, ChatMessage } from '../../../lib/socket';
-import { ChatAPI } from '../../../lib/api';
+import { ChatAPI, BookingsAPI } from '../../../lib/api';
+import { Paperclip, Send, Image as ImageIcon, X, ArrowLeft } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 interface ChatInterfaceProps {
   bookingId: string;
   currentUserId: string;
   currentUserName: string;
   isOpen: boolean;
+  userType: 'client' | 'provider';
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -16,17 +21,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   currentUserId,
   currentUserName,
   isOpen,
+  userType,
 }) => {
+  const { user } = useUser();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [booking, setBooking] = useState<any>(null);
+  const [otherUser, setOtherUser] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load existing messages when component mounts
+  // Load booking details and messages when component mounts
   useEffect(() => {
     if (isOpen && bookingId) {
+      loadBookingDetails();
       loadChatMessages();
+      markMessagesAsRead();
     }
   }, [isOpen, bookingId]);
 
@@ -82,6 +97,81 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  const loadBookingDetails = async () => {
+    if (!user?.id) {
+      console.error('❌ User not authenticated');
+      return;
+    }
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+      const headers = {
+        'X-User-ID': user.id,
+        'X-User-Type': userType,
+      };
+      
+      console.log('🔍 Loading booking details with headers:', headers);
+      console.log('🔍 API URL:', `${API_BASE_URL}/bookings/${bookingId}`);
+      
+      const response = await axios.get(`${API_BASE_URL}/bookings/${bookingId}`, {
+        headers,
+        withCredentials: true,
+      });
+      
+      if (response.data.success && response.data.data) {
+        const bookingData = response.data.data;
+        setBooking(bookingData);
+        
+        // Load other user details based on user type
+        if (userType === 'client') {
+          // For client, display provider details
+          setOtherUser({
+            name: bookingData.providerName || 'Provider',
+            profileImage: bookingData.providerProfileImage || '/placeholder-avatar.png'
+          });
+        } else {
+          // For provider, display client details
+          setOtherUser({
+            name: bookingData.clientName || 'Client',
+            profileImage: bookingData.clientProfileImage || '/placeholder-avatar.png'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to load booking details:', error);
+      // Continue without booking details
+    }
+  };
+
+  const markMessagesAsRead = async () => {
+    if (!user?.id) {
+      console.error('❌ User not authenticated for mark as read');
+      return;
+    }
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+      const headers = {
+        'X-User-ID': user.id,
+        'X-User-Type': userType,
+      };
+      
+      console.log('📖 Marking messages as read with headers:', headers);
+      console.log('📖 Request body:', { userId: user.id, userType });
+      
+      await axios.post(`${API_BASE_URL}/chat/${bookingId}/mark-read`, {
+        userId: user.id,
+        userType: userType,
+      }, {
+        headers,
+        withCredentials: true,
+      });
+      console.log('📖 Messages marked as read successfully');
+    } catch (error) {
+      console.error('❌ Failed to mark messages as read:', error);
+    }
+  };
+
   const loadChatMessages = async () => {
     try {
       setIsLoading(true);
@@ -106,44 +196,60 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !isConnected) return;
+    if ((!newMessage.trim() && !selectedFile) || !isConnected) return;
 
-    const messageData = {
-      bookingId,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      message: newMessage.trim(),
-    };
+    setIsUploading(true);
 
-    // Create the message object with timestamp
-    const newMessageObj = {
-      ...messageData,
-      timestamp: new Date(),
-    };
-
-    // Add message to local state immediately for instant feedback
-    setMessages(prev => [...prev, newMessageObj]);
-
-    // Try to send via WebSocket first
-    const sent = socketService.sendMessage(messageData);
-    
-    if (!sent) {
-      // Fallback to API if WebSocket fails
-      try {
-        await ChatAPI.sendMessage(messageData);
-      } catch (error) {
-        console.error('Failed to send message via API:', error);
-        // Remove the message from local state if API fails
-        setMessages(prev => prev.filter(msg => 
-          !(msg.senderId === messageData.senderId && 
-            msg.message === messageData.message && 
-            Math.abs(new Date(msg.timestamp).getTime() - newMessageObj.timestamp.getTime()) < 1000)
-        ));
-        return;
+    try {
+      let messageText = newMessage.trim();
+      
+      // If there's a file, upload it and mention it in the message
+      if (selectedFile) {
+        // For now, just mention the file in the message
+        // In production, you'd upload to cloud storage and include the URL
+        messageText = messageText || `📎 ${selectedFile.name}`;
       }
-    }
 
-    setNewMessage('');
+      const messageData = {
+        bookingId,
+        senderId: currentUserId,
+        senderName: currentUserName,
+        message: messageText,
+      };
+
+      // Create the message object with timestamp
+      const newMessageObj = {
+        ...messageData,
+        timestamp: new Date(),
+      };
+
+      // Add message to local state immediately for instant feedback
+      setMessages(prev => [...prev, newMessageObj]);
+
+      // Try to send via WebSocket first
+      const sent = socketService.sendMessage(messageData);
+      
+      if (!sent) {
+        // Fallback to API if WebSocket fails
+        try {
+          await ChatAPI.sendMessage(messageData);
+        } catch (error) {
+          console.error('Failed to send message via API:', error);
+          // Remove the message from local state if API fails
+          setMessages(prev => prev.filter(msg => 
+            !(msg.senderId === messageData.senderId && 
+              msg.message === messageData.message && 
+              Math.abs(new Date(msg.timestamp).getTime() - newMessageObj.timestamp.getTime()) < 1000)
+          ));
+          return;
+        }
+      }
+
+      setNewMessage('');
+      setSelectedFile(null);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -164,15 +270,68 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <div className="flex flex-col h-96 bg-gray-50 rounded-lg border border-gray-200">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span className="font-medium text-gray-900">Chat</span>
+      {/* Chat Header with Booking Details */}
+      <div className="p-4 border-b border-gray-200 bg-white rounded-t-lg">
+        {/* Back to Dashboard Button */}
+        <div className="mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(userType === 'client' ? '/client/dashboard' : '/handyman/dashboard')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
         </div>
-        <span className="text-sm text-gray-500">
-          {isConnected ? 'Connected' : 'Disconnected'}
-        </span>
+
+        {/* Connection Status */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="font-medium text-gray-900">Chat Room</span>
+          </div>
+          <span className="text-xs text-gray-500">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+
+        {/* Booking Details */}
+        {booking && (
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            {/* Avatar */}
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-semibold">
+              {otherUser?.name?.charAt(0).toUpperCase() || '?'}
+            </div>
+            
+            {/* User Info */}
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-900 truncate">
+                {otherUser?.name || 'User'}
+              </div>
+              <div className="text-sm text-gray-600">
+                {userType === 'client' ? 'Service Provider' : 'Client'}
+              </div>
+              {booking.serviceName && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {booking.serviceName}
+                </div>
+              )}
+            </div>
+
+            {/* Booking Status */}
+            {booking.status && (
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                booking.status === 'completed' ? 'bg-green-100 text-green-700' :
+                booking.status === 'paid' ? 'bg-purple-100 text-purple-700' :
+                booking.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {booking.status.toUpperCase()}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Messages Container */}
@@ -190,52 +349,106 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         ) : (
-          messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.senderId === currentUserId ? 'justify-end' : 'justify-start'}`}
-            >
+          messages.map((message, index) => {
+            const isImage = message.message.startsWith('📎');
+            const isFromCurrentUser = message.senderId === currentUserId;
+            
+            return (
               <div
-                className={`max-w-xs px-3 py-2 rounded-lg ${
-                  message.senderId === currentUserId
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-900 border border-gray-200'
-                }`}
+                key={index}
+                className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="text-sm font-medium mb-1">
-                  {message.senderName}
-                </div>
-                <div className="text-sm">{message.message}</div>
-                <div className={`text-xs mt-1 ${
-                  message.senderId === currentUserId ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {formatTime(message.timestamp)}
+                <div
+                  className={`max-w-xs px-3 py-2 rounded-lg ${
+                    isFromCurrentUser
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-900 border border-gray-200'
+                  }`}
+                >
+                  <div className="text-sm font-medium mb-1">
+                    {message.senderName}
+                  </div>
+                  {isImage ? (
+                    <div className="text-xs italic opacity-80">
+                      {message.message}
+                    </div>
+                  ) : (
+                    <div className="text-sm">{message.message}</div>
+                  )}
+                  <div className={`text-xs mt-1 ${
+                    isFromCurrentUser ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                    {formatTime(message.timestamp)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
+      {/* Message Input with File Upload */}
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
+        {/* Selected File Preview */}
+        {selectedFile && (
+          <div className="mb-2 flex items-center gap-2 p-2 bg-gray-100 rounded-lg">
+            <ImageIcon className="h-4 w-4 text-gray-600" />
+            <span className="text-sm text-gray-700 flex-1 truncate">{selectedFile.name}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedFile(null)}
+              className="h-6 w-6 p-0 text-gray-500 hover:text-red-600"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex gap-2">
+          {/* File Upload Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!isConnected || isUploading}
+            className="px-3"
+            title="Upload image"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setSelectedFile(file);
+              }
+            }}
+            className="hidden"
+          />
+
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type your message..."
-            disabled={!isConnected}
+            disabled={!isConnected || isUploading}
             className="flex-1"
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || !isConnected}
+            disabled={(!newMessage.trim() && !selectedFile) || !isConnected || isUploading}
             size="sm"
             className="px-4"
           >
-            Send
+            {isUploading ? 'Sending...' : <Send className="h-4 w-4" />}
           </Button>
         </div>
         {!isConnected && (

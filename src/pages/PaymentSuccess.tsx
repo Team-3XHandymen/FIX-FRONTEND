@@ -96,10 +96,6 @@ export const PaymentSuccess: React.FC = () => {
     }
   };
 
-  const handleGoToBooking = () => {
-    navigate(`/client/booking/${bookingId}`);
-  };
-
   const handleGoToDashboard = () => {
     navigate('/client/dashboard');
   };
@@ -166,23 +162,13 @@ export const PaymentSuccess: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {bookingId && (
-              <Button
-                onClick={handleGoToBooking}
-                className="w-full"
-                size="lg"
-              >
-                View Booking Details
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-            
             <Button
               onClick={handleGoToDashboard}
-              variant="outline"
               className="w-full"
+              size="lg"
             >
               Go to Dashboard
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
 

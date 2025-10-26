@@ -30,6 +30,11 @@ interface Booking {
   serviceName: string;
   scheduledTime: string;
   createdAt: string;
+  statusChangeHistory?: Array<{
+    status: string;
+    changedAt: string;
+    changedBy: 'client' | 'provider';
+  }>;
 }
 
 interface ChatMessage {
@@ -99,7 +104,11 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
       setMessagesLoading(true);
       const response = await HandymanAPI.getUserChats(user.id, 'handyman');
       if (response.success) {
-        setRecentChats(response.data || []);
+        // Filter out chats with no unread messages
+        const chatsWithUnread = (response.data || []).filter(
+          (chat: RecentChat) => chat.unreadCount > 0
+        );
+        setRecentChats(chatsWithUnread);
       }
     } catch (error) {
       console.error('Error fetching recent chats:', error);
@@ -134,35 +143,70 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
 
   // Categorize bookings into three sections according to new layout
   const categorizedBookings = useCallback(() => {
-    const actionRequired: Booking[] = []; // Bookings that need handyman action (pending, paid)
-    const ongoing: Booking[] = []; // Ongoing bookings (accepted, done)
-    const recent: Booking[] = []; // Recent/completed bookings (rejected, completed)
+    const actionRequired: any[] = []; // Bookings that need handyman action (pending, paid)
+    const ongoing: any[] = []; // Ongoing bookings (accepted, done)
+    const recent: any[] = []; // Recent/completed bookings (rejected, completed)
 
     console.log('Handyman Dashboard - Processing bookings:', bookings.map(b => ({ id: b._id, status: b.status })));
 
-    bookings.forEach((booking) => {
+    bookings.forEach((booking: any) => {
+      // Get last action date from status change history
+      const lastAction = booking.statusChangeHistory && booking.statusChangeHistory.length > 0 
+        ? booking.statusChangeHistory[booking.statusChangeHistory.length - 1]
+        : null;
+      
+      // Calculate last action date (most recent status change from opposite party)
+      let lastActionDate = booking.createdAt;
+      if (lastAction) {
+        lastActionDate = lastAction.changedAt;
+      }
+
       switch (booking.status) {
         case 'pending':
         case 'paid':
           // These need handyman action (review/accept or mark work done)
-          actionRequired.push(booking);
+          // Sort by last action date (most recent first)
+          actionRequired.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(lastActionDate),
+          });
           break;
         case 'accepted':
         case 'done':
           // These are ongoing bookings (work in progress)
-          ongoing.push(booking);
+          // Sort by scheduled date (soonest first)
+          ongoing.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(booking.scheduledTime),
+          });
           break;
         case 'rejected':
         case 'completed':
           // These are recent/completed bookings
-          recent.push(booking);
+          // Sort by completion date (most recent first)
+          recent.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(lastActionDate),
+          });
           break;
         default:
           // Add any other statuses to ongoing
-          ongoing.push(booking);
+          ongoing.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(booking.scheduledTime),
+          });
           break;
       }
     });
+
+    // Sort each category
+    actionRequired.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
+    ongoing.sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime());
+    recent.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
 
     console.log('Handyman Dashboard - Categorized results:', {
       actionRequired: actionRequired.map(b => ({ id: b._id, status: b.status })),
@@ -395,8 +439,9 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
                       </div>
                       
                       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="text-xs text-gray-500">
-                          ID: {booking._id}
+                        <div className="text-xs text-gray-500 space-y-1">
+                          <div>Created: {new Date(booking.createdAt).toLocaleDateString()} {new Date(booking.createdAt).toLocaleTimeString()}</div>
+                          <div>Last Action: {new Date(booking.lastActionDate).toLocaleDateString()} {new Date(booking.lastActionDate).toLocaleTimeString()}</div>
                         </div>
                         <Button
                           className={`${getActionButtonStyle(booking.status)} px-6 py-2`}
@@ -459,8 +504,9 @@ const ClientRequests = ({ onStatusChange }: ClientRequestsProps) => {
                       </div>
                       
                       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="text-xs text-gray-500">
-                          ID: {booking._id}
+                        <div className="text-xs text-gray-500 space-y-1">
+                          <div>Created: {new Date(booking.createdAt).toLocaleDateString()} {new Date(booking.createdAt).toLocaleTimeString()}</div>
+                          <div>Last Action: {new Date(booking.lastActionDate).toLocaleDateString()} {new Date(booking.lastActionDate).toLocaleTimeString()}</div>
                         </div>
                         <Button
                           variant="outline"

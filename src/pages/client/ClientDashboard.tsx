@@ -224,28 +224,63 @@ const ClientDashboard = () => {
     console.log('Client Dashboard - Processing bookings:', processedBookings.map(b => ({ id: b._id, status: b.status })));
 
     processedBookings.forEach((booking: any) => {
+      // Get last action date from status change history
+      const lastAction = booking.statusChangeHistory && booking.statusChangeHistory.length > 0 
+        ? booking.statusChangeHistory[booking.statusChangeHistory.length - 1]
+        : null;
+      
+      // Calculate last action date (most recent status change from opposite party)
+      let lastActionDate = booking.createdAt;
+      if (lastAction) {
+        lastActionDate = lastAction.changedAt;
+      }
+
       switch (booking.status) {
         case 'accepted':
         case 'done':
           // These need client action (payment confirmation or completion confirmation)
-          categorized.actionRequired.push(booking);
+          // Sort by last action date (most recent first)
+          categorized.actionRequired.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(lastActionDate),
+          });
           break;
         case 'pending':
         case 'paid':
           // These are ongoing bookings (not completed yet)
-          categorized.ongoing.push(booking);
+          // Sort by scheduled date (soonest first)
+          categorized.ongoing.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(booking.scheduledTime),
+          });
           break;
         case 'rejected':
         case 'completed':
           // These are recent/completed bookings
-          categorized.recent.push(booking);
+          // Sort by completion date (most recent first)
+          categorized.recent.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(lastActionDate),
+          });
           break;
         default:
           // Add any other statuses to ongoing
-          categorized.ongoing.push(booking);
+          categorized.ongoing.push({
+            ...booking,
+            lastActionDate,
+            sortDate: new Date(booking.scheduledTime),
+          });
           break;
       }
     });
+
+    // Sort each category
+    categorized.actionRequired.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
+    categorized.ongoing.sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime());
+    categorized.recent.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
 
     console.log('Client Dashboard - Categorized results:', {
       actionRequired: categorized.actionRequired.map(b => ({ id: b._id, status: b.status })),
@@ -672,8 +707,9 @@ const ClientDashboard = () => {
                             </div>
                             
                             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                              <div className="text-xs text-gray-500">
-                                ID: {booking._id}
+                              <div className="text-xs text-gray-500 space-y-1">
+                                <div>Created: {new Date(booking.createdAt).toLocaleDateString()} {new Date(booking.createdAt).toLocaleTimeString()}</div>
+                                <div>Last Action: {new Date(booking.lastActionDate).toLocaleDateString()} {new Date(booking.lastActionDate).toLocaleTimeString()}</div>
                               </div>
                               <div className="flex items-center gap-3">
                                 <Button 
@@ -755,8 +791,9 @@ const ClientDashboard = () => {
                             </div>
                             
                             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                              <div className="text-xs text-gray-500">
-                                ID: {booking._id}
+                              <div className="text-xs text-gray-500 space-y-1">
+                                <div>Created: {new Date(booking.createdAt).toLocaleDateString()} {new Date(booking.createdAt).toLocaleTimeString()}</div>
+                                <div>Last Action: {new Date(booking.lastActionDate).toLocaleDateString()} {new Date(booking.lastActionDate).toLocaleTimeString()}</div>
                               </div>
                               <div className="flex items-center gap-3">
                                 {booking.status !== 'completed' && booking.status !== 'rejected' && (
@@ -856,8 +893,9 @@ const ClientDashboard = () => {
                         </div>
                         
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="text-xs text-gray-500">
-                            ID: {booking._id}
+                          <div className="text-xs text-gray-500 space-y-1">
+                            <div>Created: {new Date(booking.createdAt).toLocaleDateString()} {new Date(booking.createdAt).toLocaleTimeString()}</div>
+                            <div>Last Action: {new Date(booking.lastActionDate).toLocaleDateString()} {new Date(booking.lastActionDate).toLocaleTimeString()}</div>
                           </div>
                           <div className="flex items-center gap-3">
                             {booking.status !== 'completed' && booking.status !== 'rejected' && (
@@ -938,8 +976,9 @@ const ClientDashboard = () => {
                         </div>
                         
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="text-xs text-gray-500">
-                            ID: {booking._id}
+                          <div className="text-xs text-gray-500 space-y-1">
+                            <div>Created: {new Date(booking.createdAt).toLocaleDateString()} {new Date(booking.createdAt).toLocaleTimeString()}</div>
+                            <div>Last Action: {new Date(booking.lastActionDate).toLocaleDateString()} {new Date(booking.lastActionDate).toLocaleTimeString()}</div>
                           </div>
                           <Button
                             variant="outline"
