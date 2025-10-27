@@ -327,6 +327,7 @@ const ClientDashboard = () => {
     icon: string;
     usageCount?: number;
   }) => {
+
     navigate('/client/service-details', {
       state: {
         service
@@ -721,7 +722,7 @@ const ClientDashboard = () => {
                                   }} 
                                   className="border-gray-300 text-gray-700 hover:bg-gray-50"
                                 >
-                                  <MessageSquare className="mr-1" size={16} /> Chat
+                                   View Details
                                 </Button>
                                 <Button
                                   className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"

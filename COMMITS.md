@@ -360,3 +360,9 @@ Changes made:
     Google Maps API connections: https://maps.googleapis.com, https://*.googleapis.com, and https://places.googleapis.com added to connect-src
     Google Maps tiles and images: https://*.googleapis.com, https://*.gstatic.com, and https://*.google.com added to img-src
     Image uploads: blob: added to img-src for previews
+
+Commit msg: "Improvements on the chat interface"
+Changes made: 
+    *Improvements: 
+    Modified BookingPopup to remove chat toggle and redirect Chat button to dedicated page
+    Enhanced ChatInterface to show detailed booking information for handyman view
