@@ -345,3 +345,13 @@ Changes made:
     Removed the ChatInterface component from the dialog.
     Removed the unused ChatInterface import.
 Next steps: More Improvements needed for chat interface integrations
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 27/10/25
+Commit msg: "Error fix on the handyman registration form"
+Changes made: 
+    *Issue: The profile image preview was not working. Image uploads: missing blob: in img-src
+    Fix: updated CSP to allow blob: for image uploads/previews on the headers 
+    *Issue: Map was not loaging. Google Maps: missing https://maps.googleapis.com in script-src
+    Fix: Updated CSP to allow https://maps.googleapis.com for Google Maps
+    *Updated FIX-FRONTEND/public/_headers and rebuilt
