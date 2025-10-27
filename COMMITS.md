@@ -355,3 +355,8 @@ Changes made:
     *Issue: Map was not loaging. Google Maps: missing https://maps.googleapis.com in script-src
     Fix: Updated CSP to allow https://maps.googleapis.com for Google Maps
     *Updated FIX-FRONTEND/public/_headers and rebuilt
+    *Updated FIX-FRONTEND/public/_headers to allow:
+    Google Maps scripts: https://*.googleapis.com added to script-src
+    Google Maps API connections: https://maps.googleapis.com, https://*.googleapis.com, and https://places.googleapis.com added to connect-src
+    Google Maps tiles and images: https://*.googleapis.com, https://*.gstatic.com, and https://*.google.com added to img-src
+    Image uploads: blob: added to img-src for previews
