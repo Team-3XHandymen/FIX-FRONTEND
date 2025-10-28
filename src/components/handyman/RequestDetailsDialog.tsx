@@ -192,7 +192,6 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
   const [fee, setFee] = useState<string>(request.fee?.toString() || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details');
   const { user } = useUser();
 
   const formatDateTime = (dateString: string) => {
@@ -354,38 +353,9 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
           </DialogTitle>
         </DialogHeader>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            onClick={() => setActiveTab('details')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'details'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Details
-          </button>
-          <button
-            onClick={() => navigate(`/handyman/chat/${request._id}`)}
-            className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
-          >
-            Chat
-          </button>
-        </div>
-
         <div className="py-6 space-y-6">
-          {/* Chat Tab Content - Navigates to separate page */}
-          {activeTab === 'chat' && (
-            <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">Redirecting to chat...</p>
-              <p className="text-sm text-gray-500">If you are not redirected, click the Chat button above.</p>
-            </div>
-          )}
-
-          {/* Details Tab Content */}
-          {activeTab === 'details' && (
-            <>
+          {/* Request Details Content */}
+          <>
               {/* Service Information */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
             <div className="flex items-start justify-between mb-4">
@@ -515,7 +485,10 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
                 <Button
                   variant="outline"
                   className="flex-1 border-2 border-blue-200 text-blue-700 hover:bg-blue-50 py-3 px-6 rounded-xl font-semibold transition-all duration-200"
-                  onClick={() => navigate(`/handyman/chat/${request._id}`)}
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/handyman/chat/${request._id}`);
+                  }}
                 >
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Chat with Client
@@ -547,7 +520,10 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
                 <Button
                   variant="outline"
                   className="flex-1 border-2 border-blue-200 text-blue-700 hover:bg-blue-50 py-3 px-6 rounded-xl font-semibold transition-all duration-200"
-                  onClick={() => setActiveTab('chat')}
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/handyman/chat/${request._id}`);
+                  }}
                 >
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Chat with Client
@@ -604,7 +580,10 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
                 <Button
                   variant="outline"
                   className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 py-3 px-6 rounded-xl font-semibold transition-all duration-200"
-                  onClick={() => setActiveTab('chat')}
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/handyman/chat/${request._id}`);
+                  }}
                 >
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Chat with Client
@@ -621,7 +600,6 @@ const RequestDetailsDialog = ({ open, onOpenChange, request, onStatusChange }: R
             </Button>
           </div>
             </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
