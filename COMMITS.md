@@ -366,3 +366,10 @@ Changes made:
     *Improvements: 
     Modified BookingPopup to remove chat toggle and redirect Chat button to dedicated page
     Enhanced ChatInterface to show detailed booking information for handyman view
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 28/10/25
+Commit msg: "Improved chat button usage on booking cards in handyman dashboard"
+Changes made: 
+    * In the booking card, removed the top bar navigation.
+    * Removed the extra chat button.
