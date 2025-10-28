@@ -402,6 +402,30 @@ export class StripeAPI {
   }
 }
 
+export class ReviewAPI {
+  static async createReview(reviewData: {
+    bookingId: string;
+    rating: number;
+    comment: string;
+    shortDescription?: string;
+    selectedIssues?: string[];
+    detailedFeedback?: string;
+  }) {
+    const response = await api.post('/reviews', reviewData);
+    return response.data;
+  }
+
+  static async getProviderReviews(providerId: string) {
+    const response = await api.get(`/reviews/provider/${providerId}`);
+    return response.data;
+  }
+
+  static async getBookingReview(bookingId: string) {
+    const response = await api.get(`/reviews/booking/${bookingId}`);
+    return response.data;
+  }
+}
+
 // Export the main api instance for custom requests
 export { api };
 export default api;

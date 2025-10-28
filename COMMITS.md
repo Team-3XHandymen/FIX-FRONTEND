@@ -373,3 +373,25 @@ Commit msg: "Improved chat button usage on booking cards in handyman dashboard"
 Changes made: 
     * In the booking card, removed the top bar navigation.
     * Removed the extra chat button.
+
+Commit msg: "Implementing the review system"
+Changes made: 
+    * We already had some parts of the review system implemented on the codebase. So basically, we had to do some improvements.
+    * Review API (FIX-FRONTEND/src/lib/api.ts)
+    ReviewAPI class with createReview, getProviderReviews, and getBookingReview
+    * RatingDialog component (FIX-FRONTEND/src/components/client/RatingDialog.tsx)
+        Black header with close button
+        Provider info with avatar placeholder
+        Star rating (1–5, required)
+        Issue selection for lower ratings (Cleanliness, Navigation, Price, etc.)
+        Optional brief description input
+        Optional detailed feedback textarea
+        Submit that combines rating + completion
+    * Integrated with BookingPopup (FIX-FRONTEND/src/components/client/BookingPopup.tsx)
+        Clicking "Confirm Job Completion" opens the rating dialog
+        After review submission, marks the booking as completed
+        Review data is saved before changing status
+    * The pop up review window style was different from other components. Therefore fixed it. 
+    * Problem: API returned 401 due to missing X-User-ID and X-User-Type.
+      Fix: In RatingDialog, added direct axios call with the required headers.
+    
