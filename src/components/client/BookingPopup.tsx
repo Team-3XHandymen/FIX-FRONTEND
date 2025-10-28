@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from '@clerk/clerk-react';
 import { BookingsAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import RatingDialog from "./RatingDialog";
 
 interface Booking {
   _id: string;
@@ -189,6 +190,7 @@ const BookingPopup = ({
   const { user } = useUser();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
 
   const handleChat = () => {
     navigate(`/client/chat/${booking._id}`);
@@ -235,7 +237,12 @@ const BookingPopup = ({
     }
   };
 
-  const handleMarkAsCompleted = async () => {
+  const handleMarkAsCompleted = () => {
+    // Show rating dialog instead of directly marking as completed
+    setShowRatingDialog(true);
+  };
+
+  const handleRatingComplete = async () => {
     if (!user) return;
     
     setIsProcessing(true);
@@ -249,7 +256,7 @@ const BookingPopup = ({
       if (response.success) {
         toast({
           title: "Job Completed",
-          description: "Thank you for confirming! The service provider has been paid.",
+          description: "Thank you for your feedback! The service provider has been paid.",
         });
         onOpenChange(false);
         // Refresh the parent component to show updated status
@@ -347,16 +354,17 @@ const BookingPopup = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="pb-4 border-b border-gray-100">
-          <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            Booking Details
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-4 border-b border-gray-100">
+            <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              Booking Details
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="py-6 space-y-6">
+          <div className="py-6 space-y-6">
               {/* Service Information */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
             <div className="flex items-start justify-between mb-4">
@@ -495,6 +503,16 @@ const BookingPopup = ({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Rating Dialog */}
+    <RatingDialog
+      open={showRatingDialog}
+      onOpenChange={setShowRatingDialog}
+      bookingId={booking._id}
+      providerName={booking.providerName || 'Service Provider'}
+      onComplete={handleRatingComplete}
+    />
+  </>
   );
 };
 
