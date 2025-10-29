@@ -37,8 +37,8 @@ VITE_NODE_ENV=development
 Set these environment variables in your Render dashboard:
 
 ```
-CORS_ORIGIN=https://fixfinder-frontend.netlify.app
-FRONTEND_URL=https://fixfinder-frontend.netlify.app
+CORS_ORIGIN=https://fix-frontend.netlify.app
+FRONTEND_URL=https://fix-frontend.netlify.app
 CLERK_SECRET_KEY=your_clerk_secret_key_here
 CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
 MONGODB_URI=your_mongodb_connection_string
@@ -59,8 +59,8 @@ NODE_ENV=production
    - Under "Application restrictions", select "HTTP referrers (web sites)"
    - Add these referrers:
      ```
-     https://fixfinder-frontend.netlify.app/*
-     https://fixfinder-frontend.netlify.app
+    https://fix-frontend.netlify.app/*
+    https://fix-frontend.netlify.app
      http://localhost:5173/*
      http://localhost:8080/*
      ```
