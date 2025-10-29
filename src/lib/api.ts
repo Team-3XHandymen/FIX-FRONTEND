@@ -438,6 +438,103 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+export class CallAPI {
+  /**
+   * Get access token for Twilio voice calls
+   */
+  static async getAccessToken(userType?: string): Promise<ApiResponse<{ token: string; identity: string }>> {
+    const user = await this.getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const response = await api.get('/calls/token', {
+      params: { userType },
+      headers: {
+        'X-User-ID': user.id,
+        'X-User-Type': userType || 'user',
+      },
+    });
+    return response.data;
+  }
+
+  /**
+   * Get contact information for the other party in a booking
+   */
+  static async getContactNumber(bookingId: string, userType: string): Promise<ApiResponse<{
+    otherPartyId: string;
+    otherPartyIdentity: string;
+    otherPartyName: string;
+    otherPartyPhone: string | null;
+  }>> {
+    const user = await this.getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const response = await api.get(`/calls/contact/${bookingId}`, {
+      headers: {
+        'X-User-ID': user.id,
+        'X-User-Type': userType,
+      },
+    });
+    return response.data;
+  }
+
+  /**
+   * Initiate a call
+   */
+  static async initiateCall(bookingId: string, userType: string): Promise<ApiResponse<{
+    callId: string;
+    bookingId: string;
+    callerId: string;
+    receiverId: string;
+    callerIdentity: string;
+    receiverIdentity: string;
+  }>> {
+    const user = await this.getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const response = await api.post('/calls/initiate', {
+      bookingId,
+    }, {
+      headers: {
+        'X-User-ID': user.id,
+        'X-User-Type': userType,
+      },
+    });
+    return response.data;
+  }
+
+  /**
+   * Get call history for a booking
+   */
+  static async getCallHistory(bookingId: string, userType: string): Promise<ApiResponse<any[]>> {
+    const user = await this.getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const response = await api.get(`/calls/history/${bookingId}`, {
+      headers: {
+        'X-User-ID': user.id,
+        'X-User-Type': userType,
+      },
+    });
+    return response.data;
+  }
+
+  /**
+   * Helper to get current user (from Clerk)
+   * This is handled by the components using useUser hook
+   */
+  private static async getCurrentUser(): Promise<{ id: string } | null> {
+    return null; // Components will pass user info in headers
+  }
+}
+
 export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
   pagination: {
     page: number;
