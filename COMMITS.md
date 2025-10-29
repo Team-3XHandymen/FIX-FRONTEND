@@ -394,4 +394,29 @@ Changes made:
     * The pop up review window style was different from other components. Therefore fixed it. 
     * Problem: API returned 401 due to missing X-User-ID and X-User-Type.
       Fix: In RatingDialog, added direct axios call with the required headers.
-    
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 29/10/25
+Commit msg: "Integrating twillio for in app calls"
+Changes made:
+    * Component: src/components/ui/call/CallButton.tsx — Call button with:
+        Twilio SDK integration
+        Call controls (mute/unmute/end)
+        Error handling
+    * Integration: Added call button to ChatInterface.tsx header
+    * API: Added CallAPI class to api.ts
+    * Issue: ❌ Failed to load Twilio SDK (2.7.3), trying fallback
+      Fix: In FIX-FRONTEND/src/components/ui/call/CallButton.tsx
+        Imported the SDK: import { Device as TwilioDevice } from '@twilio/voice-sdk'
+        Removed the dynamic <script> loader
+        Initialize the device via the npm module
+        Added dependency to FIX-FRONTEND/package.json: @twilio/voice-sdk@^2.7.3
+        Added a minimal type stub at FIX-FRONTEND/src/types/twilio-voice-sdk.d.ts to keep TypeScript happy before install
+    * Issue:  Failed to make call: Error: Device initialization timeout.    Please refresh and try again
+    Fix: timeout came from waiting for a non-existent “ready” state in v2.
+      updated the component to correctly register the device and wait for “registered”:
+            Initialize with npm @twilio/voice-sdk (no CDN)
+            Call await device.register() after creating the Device
+            Listen for registered / unregistered (not ready)
+            Wait for registered before placing the call
+            Logs now show “Device registered, proceeding with call...”

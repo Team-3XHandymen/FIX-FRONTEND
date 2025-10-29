@@ -4,6 +4,7 @@ import { Input } from '../input';
 import { socketService, ChatMessage } from '../../../lib/socket';
 import { ChatAPI, BookingsAPI } from '../../../lib/api';
 import { Paperclip, Send, Image as ImageIcon, X, ArrowLeft, Calendar, Clock, DollarSign } from 'lucide-react';
+import CallButton from '../call/CallButton';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -328,18 +329,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="font-semibold text-gray-900">{otherUser?.name || 'User'}</div>
                 <div className="text-xs text-gray-600">{userType === 'client' ? 'Service Provider' : 'Client'}</div>
               </div>
-              {booking.status && (
-                <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  booking.status === 'completed' ? 'bg-green-100 text-green-700' :
-                  booking.status === 'paid' ? 'bg-purple-100 text-purple-700' :
-                  booking.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                  booking.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                  booking.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                  'bg-gray-100 text-gray-700'
-                }`}>
-                  {booking.status.toUpperCase()}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {booking.status && (
+                  <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    booking.status === 'completed' ? 'bg-green-100 text-green-700' :
+                    booking.status === 'paid' ? 'bg-purple-100 text-purple-700' :
+                    booking.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                    booking.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {booking.status.toUpperCase()}
+                  </div>
+                )}
+                {/* Voice Call Button */}
+                <CallButton
+                  bookingId={bookingId}
+                  userType={userType}
+                  otherPartyName={otherUser?.name}
+                />
+              </div>
             </div>
 
             {/* Details in 2 columns */}
