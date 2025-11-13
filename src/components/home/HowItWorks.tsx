@@ -12,14 +12,14 @@ const StepCard = ({ icon, title, description, color }: StepCardProps) => {
   const bgColor = color === "yellow" ? "bg-yellow-400" : "bg-orange-400";
   
   return (
-    <div className={`${bgColor} rounded-lg p-6 shadow-md`}>
-      <div className="flex items-center mb-4">
-        <div className="bg-white rounded-full p-2 mr-3">
+    <div className={`${bgColor} rounded-lg p-4 sm:p-6 shadow-md`}>
+      <div className="flex items-center mb-3 sm:mb-4">
+        <div className="bg-white rounded-full p-2 mr-2 sm:mr-3 flex-shrink-0">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold">{title}</h3>
+        <h3 className="text-base sm:text-lg font-semibold">{title}</h3>
       </div>
-      <p className="text-gray-800">{description}</p>
+      <p className="text-sm sm:text-base text-gray-800">{description}</p>
     </div>
   );
 };
@@ -47,11 +47,11 @@ const HowItWorks = () => {
   ];
 
   return (
-    <div className="py-16 bg-white">
+    <div className="py-12 sm:py-16 bg-white">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">How It Works</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-8 sm:mb-12 px-2">How It Works</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
           {steps.map((step, index) => (
             <StepCard 
               key={index}

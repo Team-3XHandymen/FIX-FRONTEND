@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ClientAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { isApiError } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // Helper function to get status display text
 const getStatusDisplayText = (status: string): string => {
@@ -83,6 +84,7 @@ const ClientDashboard = () => {
   const location = useLocation();
   const { user } = useUser();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -352,11 +354,16 @@ const ClientDashboard = () => {
   // Show loading state while client data is being fetched
   if (isLoadingClient) {
     return (
-      <ClientDashboardLayout title="Loading..." subtitle="Please wait while we load your profile..." showHomeIcon={false} showHandymanButton={true}>
+      <ClientDashboardLayout
+        title={t("client.dashboard.loadingTitle")}
+        subtitle={t("client.dashboard.loadingMessage")}
+        showHomeIcon={false}
+        showHandymanButton={true}
+      >
         <div className="flex items-center justify-center py-20">
           <div className="flex items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-            <span className="text-lg text-gray-600">Loading your profile...</span>
+            <span className="text-lg text-gray-600">{t("client.dashboard.loadingMessage")}</span>
           </div>
         </div>
       </ClientDashboardLayout>
@@ -366,18 +373,23 @@ const ClientDashboard = () => {
   // Show error state if client data failed to load
   if (!clientData && !isLoadingClient) {
     return (
-      <ClientDashboardLayout title="Profile Error" subtitle="Unable to load your profile" showHomeIcon={false} showHandymanButton={true}>
+      <ClientDashboardLayout
+        title={t("client.dashboard.errorTitle")}
+        subtitle={t("client.dashboard.errorMessage")}
+        showHomeIcon={false}
+        showHandymanButton={true}
+      >
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <p className="text-lg text-red-600 mb-4">Failed to load your profile</p>
-            <p className="text-gray-600">Please refresh the page or try again later.</p>
+            <p className="text-lg text-red-600 mb-4">{t("client.dashboard.errorMessage")}</p>
+            <p className="text-gray-600">{t("client.dashboard.profileNotFoundDescription")}</p>
           </div>
         </div>
       </ClientDashboardLayout>
     );
   }
 
-  return <ClientDashboardLayout title={`Welcome back, ${displayName}`} subtitle="What can we help you with today?" showHomeIcon={false} showHandymanButton={true}>
+  return <ClientDashboardLayout title={t("client.dashboard.welcome", { name: displayName })} subtitle={t("client.dashboard.subtitle")} showHomeIcon={false} showHandymanButton={true}>
         {/* Profile Completion Segment */}
         {clientData && (() => {
           // Check if profile is incomplete (missing required fields)
@@ -469,13 +481,13 @@ const ClientDashboard = () => {
               {/* Call to Action */}
               <div className="flex items-center justify-between">
                 <div className="text-sm text-blue-600">
-                  <span className="font-medium">💡 Tip:</span> Complete profiles get faster service and better handyman matching!
+                  <span className="font-medium">💡 {t("client.dashboard.profileTip")}:</span> {t("client.dashboard.profileTipMessage")}
                 </div>
                 <Button 
                   onClick={() => navigate('/client/profile')}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
                 >
-                  Complete Profile
+                  {t("client.dashboard.completeProfile")}
                 </Button>
               </div>
             </div>
@@ -484,32 +496,32 @@ const ClientDashboard = () => {
 
         {/* Search Bar */}
         <div className="relative mb-8">
-         <Input
-           type="text"
-           value={search}
-           onChange={e => setSearch(e.target.value)}
-           placeholder="Search Services"
-           className="pl-10"
-         />
+        <Input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t("client.dashboard.searchPlaceholder")}
+          className="pl-10"
+        />
          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
        </div>
 
       {/* Search Results */}
       {search.trim() && (
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Search Results</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("client.dashboard.searchResults")}</h2>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Loading services...</span>
+                <span>{t("client.dashboard.loadingTitle")}</span>
               </div>
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-red-600 mb-4">Failed to load services</p>
+              <p className="text-red-600 mb-4">{t("client.dashboard.failedServices")}</p>
               <p className="text-sm text-gray-500">
-                {error.message || 'Please check your connection and try again'}
+                {error.message || t("client.dashboard.failedServicesHint")}
               </p>
             </div>
           ) : filteredServices.length > 0 ? (
@@ -549,7 +561,7 @@ const ClientDashboard = () => {
                   {/* Usage Count */}
                   {service.usageCount > 0 && (
                     <span className="text-xs text-gray-500">
-                      {service.usageCount} times used
+                      {t("client.dashboard.timesUsed", { count: service.usageCount })}
                     </span>
                   )}
                 </div>
@@ -557,14 +569,14 @@ const ClientDashboard = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">No services found matching "{search}"</p>
+              <p className="text-gray-500">{t("client.dashboard.noServicesMatch", { search })}</p>
             </div>
           )}
         </div>
       )}
       
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Popular Services</h2>
+        <h2 className="text-xl font-semibold mb-4">{t("client.dashboard.popularServices")}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {popularServices.map(service => (
                          <div 
@@ -586,15 +598,15 @@ const ClientDashboard = () => {
       
       <div className="mb-8 space-y-4">
         <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6" onClick={() => navigate("/client/service-catalog")}>
-          See All Services
+          {t("client.dashboard.seeAllServices")}
         </Button>
         
       </div>
       
              {/* Your Bookings Section */}
-       <div className="mb-8">
+      <div className="mb-8">
          <div className="flex items-center justify-between mb-4">
-           <h2 className="text-xl font-semibold">Your Bookings</h2>
+          <h2 className="text-xl font-semibold">{t("client.dashboard.yourBookings")}</h2>
            <Button
              variant="outline"
              size="sm"
@@ -610,41 +622,41 @@ const ClientDashboard = () => {
              ) : (
                <Search className="h-4 w-4" />
              )}
-             Refresh
+            {t("client.dashboard.refresh")}
            </Button>
          </div>
         
         {!user ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500 mb-2">Please sign in to view your bookings</p>
+            <p className="text-gray-500 mb-2">{t("client.dashboard.signInPrompt")}</p>
           </div>
         ) : isLoadingBookings ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin" />
-              <span>Loading your bookings...</span>
+              <span>{t("client.dashboard.loadingBookings")}</span>
             </div>
           </div>
         ) : bookingsError ? (
           <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-red-600 mb-2">Failed to load bookings</p>
+            <p className="text-red-600 mb-2">{t("client.dashboard.failedBookings")}</p>
             <p className="text-sm text-red-500 mb-3">{bookingsError.message}</p>
             <Button 
               onClick={() => window.location.reload()}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Retry
+              {t("client.dashboard.retry")}
             </Button>
           </div>
         ) : processedBookings.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500 mb-2">No active bookings found</p>
-            <p className="text-sm text-gray-400">Start by booking a service from our catalog</p>
+            <p className="text-gray-500 mb-2">{t("client.dashboard.noBookings")}</p>
+            <p className="text-sm text-gray-400">{t("client.dashboard.noBookingsHint")}</p>
             <Button 
               onClick={() => navigate("/client/service-catalog")}
               className="mt-3 bg-orange-500 hover:bg-orange-600 text-white"
             >
-              Book a Service
+              {t("client.dashboard.bookService")}
             </Button>
           </div>
         ) : (

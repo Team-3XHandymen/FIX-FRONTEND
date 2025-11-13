@@ -38,23 +38,23 @@ const testimonials: Testimonial[] = [
 
 const CustomerTestimonials = () => {
   return (
-    <section className="py-16 bg-white">
+    <section className="py-12 sm:py-16 bg-white">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">Customer Testimonials</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-8 sm:mb-12 px-2">Customer Testimonials</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
           {testimonials.map(({ id, name, avatar, quote, occupation }) => (
             <div
               key={id}
-              className="bg-green-50 rounded-lg shadow p-6 flex flex-col items-center text-center"
+              className="bg-green-50 rounded-lg shadow p-4 sm:p-6 flex flex-col items-center text-center"
             >
               <img
                 src={avatar}
                 alt={name}
-                className="w-16 h-16 rounded-full mb-4 object-cover"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full mb-3 sm:mb-4 object-cover"
               />
-              <p className="text-gray-700 italic mb-4">&quot;{quote}&quot;</p>
-              <h3 className="text-lg font-semibold text-green-700">{name}</h3>
-              <p className="text-sm text-green-600">{occupation}</p>
+              <p className="text-sm sm:text-base text-gray-700 italic mb-3 sm:mb-4">&quot;{quote}&quot;</p>
+              <h3 className="text-base sm:text-lg font-semibold text-green-700">{name}</h3>
+              <p className="text-xs sm:text-sm text-green-600">{occupation}</p>
             </div>
           ))}
         </div>

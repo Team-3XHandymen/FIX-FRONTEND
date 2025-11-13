@@ -15,20 +15,20 @@ interface ServiceCardProps {
 const ServiceCard = ({ title, image, description }: ServiceCardProps) => {
   return (
     <div className="bg-green-600 bg-opacity-80 rounded-lg overflow-hidden">
-      <div className="h-48 overflow-hidden">
+      <div className="h-40 sm:h-48 overflow-hidden">
         <img 
           src={image} 
           alt={title} 
           className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
         />
       </div>
-      <div className="p-6">
-        <h3 className="text-white text-xl font-bold mb-3 text-center">{title}</h3>
-        <p className="text-green-100 mb-5">{description}</p>
+      <div className="p-4 sm:p-6">
+        <h3 className="text-white text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-center">{title}</h3>
+        <p className="text-sm sm:text-base text-green-100 mb-4 sm:mb-5">{description}</p>
         <div className="flex justify-end">
           <Link to={`/services/${title.toLowerCase()}`}>
-            <Button variant="ghost" className="text-white hover:text-green-200">
-              <ArrowRight className="h-5 w-5" />
+            <Button variant="ghost" size="sm" className="text-white hover:text-green-200">
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </Link>
         </div>
@@ -57,14 +57,14 @@ const ServiceShowcase = () => {
   ];
 
   return (
-    <div className="py-16 bg-green-50">
+    <div className="py-12 sm:py-16 bg-green-50">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">MOST POPULAR SERVICES</h2>
-        <p className="text-gray-600 text-center mb-12">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-2 px-2">MOST POPULAR SERVICES</h2>
+        <p className="text-sm sm:text-base text-gray-600 text-center mb-8 sm:mb-12 px-2">
           From carpentry to electrical repairs, we've got you covered for all your home maintenance needs.
         </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
           {services.map((service) => (
             <ServiceCard 
               key={service.title}
@@ -75,9 +75,9 @@ const ServiceShowcase = () => {
           ))}
         </div>
         
-        <div className="flex justify-center mt-12">
-          <Link to="/services#top">
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8">
+        <div className="flex justify-center mt-8 sm:mt-12">
+          <Link to="/services#top" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-6 sm:px-8 text-sm sm:text-base">
               View All Services
             </Button>
           </Link>

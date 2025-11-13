@@ -1,0 +1,84 @@
+{
+  "language": {
+    "english": "English",
+    "sinhala": "Sinhala",
+    "tamil": "Tamil"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "menuTitle": "Change language"
+  },
+  "common": {
+    "loading": "Loading..."
+  },
+  "client": {
+    "dashboard": {
+      "welcome": "Welcome back, {{name}}",
+      "subtitle": "What can we help you with today?",
+      "loadingTitle": "Loading...",
+      "loadingMessage": "Please wait while we load your profile...",
+      "errorTitle": "Profile Error",
+      "errorMessage": "Unable to load your profile",
+      "profileNotFoundTitle": "Profile not found",
+      "profileNotFoundDescription": "Please contact support or try signing up again.",
+      "searchPlaceholder": "Search Services",
+      "searchResults": "Search Results",
+      "popularServices": "Popular Services",
+      "seeAllServices": "See All Services",
+      "yourBookings": "Your Bookings",
+      "refresh": "Refresh",
+      "signInPrompt": "Please sign in to view your bookings",
+      "loadingBookings": "Loading your bookings...",
+      "failedServices": "Failed to load services",
+      "failedServicesHint": "Please check your connection and try again",
+      "noServicesMatch": "No services found matching \"{{search}}\"",
+      "timesUsed": "{{count}} times used",
+      "failedBookings": "Failed to load bookings",
+      "retry": "Retry",
+      "noBookings": "No active bookings found",
+      "noBookingsHint": "Start by booking a service from our catalog",
+      "bookService": "Book a Service",
+      "profileTip": "Tip",
+      "profileTipMessage": "Complete profiles get faster service and better handyman matching!",
+      "completeProfile": "Complete Profile"
+    },
+    "layout": {
+      "registerHandyman": "Register as Handyman",
+      "serviceDashboard": "Service Dashboard",
+      "notifications": "Notifications",
+      "noNotifications": "No notifications",
+      "menu": {
+        "dashboard": "Dashboard",
+        "basicInfo": "Basic Info",
+        "serviceHistory": "Service History",
+        "upcomingBookings": "Upcoming Bookings",
+        "reviews": "Reviews Given",
+        "paymentBilling": "Payment & Billing",
+        "accountSettings": "Account Settings",
+        "logout": "Log Out"
+      }
+    }
+  },
+  "handyman": {
+    "layout": {
+      "notifications": "Notifications",
+      "logout": "Logout",
+      "menu": {
+        "dashboard": "Dashboard",
+        "schedule": "Schedule",
+        "jobs": "Jobs",
+        "clients": "Clients",
+        "serviceHistory": "Service History",
+        "settings": "Settings",
+        "profile": "Profile",
+        "account": "Account",
+        "billing": "Billing"
+      }
+    },
+    "hero": {
+      "welcome": "Welcome, {{name}}! 👋",
+      "subtitle": "Ready to tackle today's jobs? Check your client requests and manage your schedule."
+    }
+  }
+}
+

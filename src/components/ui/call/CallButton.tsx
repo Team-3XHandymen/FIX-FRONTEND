@@ -282,7 +282,7 @@ const CallButton: React.FC<CallButtonProps> = ({ bookingId, userType, otherParty
       // Device.connect will automatically request getUserMedia if needed
       if (deviceRef.current) {
         console.log('📞 Connecting to:', otherPartyIdentity);
-        const connection = deviceRef.current.connect({
+        const connection = await deviceRef.current.connect({
           To: otherPartyIdentity,
         });
 

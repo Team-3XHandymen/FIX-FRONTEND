@@ -29,24 +29,24 @@ interface Service {
 const ServiceCard = ({ name, description, imageUrl, icon }: Service) => {
   return (
     <div className="group bg-white border border-gray-200 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 focus:outline-none w-full text-left">
-      <div className="h-48 overflow-hidden relative">
+      <div className="h-40 sm:h-48 overflow-hidden relative">
         <img 
           src={imageUrl} 
           alt={name} 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <h3 className="text-xl font-bold text-white uppercase">{name}</h3>
+          <h3 className="text-base sm:text-lg md:text-xl font-bold text-white uppercase px-2 text-center">{name}</h3>
         </div>
       </div>
-      <div className="p-6">
-        <div className="flex items-center mb-4">
-          <div className="bg-green-100 p-2 rounded-full mr-3">
+      <div className="p-4 sm:p-6">
+        <div className="flex items-center mb-3 sm:mb-4">
+          <div className="bg-green-100 p-2 rounded-full mr-2 sm:mr-3 flex-shrink-0">
             {icon}
           </div>
-          <h3 className="text-lg font-semibold">{name}</h3>
+          <h3 className="text-base sm:text-lg font-semibold">{name}</h3>
         </div>
-        <p className="text-gray-600 mb-2">{description}</p>
+        <p className="text-sm sm:text-base text-gray-600 mb-2">{description}</p>
       </div>
     </div>
   );
@@ -139,7 +139,7 @@ const Services = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow">
-        <div className="relative bg-gray-900 py-24">
+        <div className="relative bg-gray-900 py-16 sm:py-20 md:py-24">
           <div 
             className="absolute inset-0 z-0 bg-cover bg-center bg-fixed"
             style={{ 
@@ -149,18 +149,18 @@ const Services = () => {
             }}
           />
           <div className="relative z-10 container mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 px-2 leading-tight">
               EXPLORE OUR WIDE RANGE OF SERVICES
             </h1>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto px-2">
               Whatever your home maintenance or repair needs, our team of skilled handymen are ready to help
             </p>
           </div>
         </div>
         
-        <div className="py-16 bg-gray-50">
+        <div className="py-12 sm:py-16 bg-gray-50">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {SERVICES.map((service) => (
                 <ServiceCard 
                   key={service.name}
@@ -171,14 +171,14 @@ const Services = () => {
           </div>
         </div>
         
-        <div className="py-16 bg-green-500">
+        <div className="py-12 sm:py-16 bg-green-500">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">Need a Custom Service?</h2>
-            <p className="text-xl text-green-100 mb-8 max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 px-2">Need a Custom Service?</h2>
+            <p className="text-base sm:text-lg md:text-xl text-green-100 mb-6 sm:mb-8 max-w-3xl mx-auto px-2">
               Don't see what you're looking for? We offer many more specialized services and can customize solutions for your specific needs.
             </p>
-            <a href="/contact">
-              <Button size="lg" className="bg-white text-green-600 hover:bg-green-100">
+            <a href="/contact" className="inline-block">
+              <Button size="lg" className="bg-white text-green-600 hover:bg-green-100 text-sm sm:text-base px-6 sm:px-8">
                 Contact Us for Custom Services
               </Button>
             </a>

@@ -420,3 +420,17 @@ Changes made:
             Listen for registered / unregistered (not ready)
             Wait for registered before placing the call
             Logs now show “Device registered, proceeding with call...”
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 10/11/25
+Commit msg: "Integrating i18next"
+Changes made:
+    * Tested the twillio functionality. unfortunately to make a real phone call between the client and the handyman, we need the premium version of twillio, currently it shows that the two endpoints are getting connected and a recording plays to confirm it. 
+    *
+________________________________________________________________________________________________
+Collaborator name:Sewwandi
+Date: 13/11/25
+Commit msg: "Made it mobile responsive"
+Changes made:
+    * Fixed the Language Switcher to not to translate the language options when the language is switched
+    * Made all the pages, components mobile responsive.
